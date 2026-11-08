@@ -1,0 +1,9 @@
+.DS_Store
+_build/
+target
+.mooncakes/
+.moonagent/
+/.vscode
+/bpy-out
+__pycache__
+*.blend*
