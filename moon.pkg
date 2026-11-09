@@ -1,3 +1,21 @@
 import {
+  "moonbitlang/async/fs",
   "moonbitlang/core/builtin",
+  "moonbitlang/core/debug",
+  "moonbitlang/core/double",
+  "moonbitlang/core/encoding/utf8" @encoding/utf8,
+  "moonbitlang/core/math",
+  "moonbitlang/core/string",
 }
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/async/fs",
+  "moonbitlang/async/process",
+  "moonbitlang/core/builtin",
+  "moonbitlang/core/double",
+  "moonbitlang/core/encoding/utf8" @encoding/utf8,
+  "moonbitlang/core/env",
+  "moonbitlang/core/math",
+  "moonbitlang/core/string",
+} for "test"

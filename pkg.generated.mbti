@@ -1,0 +1,509 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "gmlewis/urdf"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn fmt_num(Double) -> String
+
+pub fn fmt_rgba(Rgba) -> String
+
+pub fn fmt_vec3((Double, Double, Double)) -> String
+
+pub fn matrix_to_rpy(Matrix3x3) -> (Double, Double, Double)
+
+pub fn rotation_matrix_axis_angle((Double, Double, Double), Double) -> Matrix3x3
+
+pub fn rotation_matrix_rpy(Double, Double, Double) -> Matrix3x3
+
+pub fn snap_mates(MateConnector, MateConnector, offset? : Double, angle_rad? : Double, flip_axis? : Bool) -> (Origin, (Double, Double, Double))
+
+pub fn v3_add((Double, Double, Double), (Double, Double, Double)) -> (Double, Double, Double)
+
+pub fn v3_cross((Double, Double, Double), (Double, Double, Double)) -> (Double, Double, Double)
+
+pub fn v3_dot((Double, Double, Double), (Double, Double, Double)) -> Double
+
+pub fn v3_len((Double, Double, Double)) -> Double
+
+pub fn v3_norm((Double, Double, Double)) -> (Double, Double, Double)
+
+pub fn v3_scale((Double, Double, Double), Double) -> (Double, Double, Double)
+
+pub fn v3_sub((Double, Double, Double), (Double, Double, Double)) -> (Double, Double, Double)
+
+pub async fn write_text_file(String, String?) -> Unit
+
+pub fn xml_escape(String) -> String
+
+// Errors
+
+// Types and methods
+#derive(Eq, @debug.Debug)
+pub(all) struct Actuator {
+  name : String
+  hardware_interfaces : Array[String]
+  mechanical_reduction : Double?
+}
+pub fn Actuator::equal(Self, Self) -> Bool
+pub fn Actuator::to_repr(Self) -> @debug.Repr
+
+pub struct Angle {
+  radians : Double
+}
+pub fn Angle::add(Self, Self) -> Self
+pub fn Angle::deg(Double) -> Self
+pub fn Angle::neg(Self) -> Self
+pub fn Angle::rad(Double) -> Self
+pub fn Angle::sub(Self, Self) -> Self
+pub fn Angle::to_deg(Self) -> Double
+pub fn Angle::to_rad(Self) -> Double
+pub impl Add for Angle
+pub impl Neg for Angle
+pub impl Sub for Angle
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Collision {
+  name : String?
+  origin : Origin
+  geometry : Geometry
+}
+pub fn Collision::equal(Self, Self) -> Bool
+pub fn Collision::new(Geometry, name? : String?, origin? : Origin) -> Self
+pub fn Collision::to_repr(Self) -> @debug.Repr
+pub fn Collision::with_name(Self, String) -> Self
+pub fn Collision::with_origin(Self, Origin) -> Self
+
+pub struct Density {
+  kg_per_m3 : Double
+}
+pub fn Density::abs() -> Self
+pub fn Density::aluminum_6061() -> Self
+pub fn Density::carbon_fiber() -> Self
+pub fn Density::g_per_cm3(Double) -> Self
+pub fn Density::kg_per_m3(Double) -> Self
+pub fn Density::petg() -> Self
+pub fn Density::pla() -> Self
+pub fn Density::steel_mild() -> Self
+pub fn Density::titanium() -> Self
+pub fn Density::to_kg_per_m3(Self) -> Double
+pub fn Density::tpu() -> Self
+
+#derive(Eq, @debug.Debug)
+pub(all) enum Diagnostic {
+  EmptyRobot(String)
+  DuplicateLinkName(String)
+  DuplicateJointName(String)
+  MissingParentLink(String, String)
+  MissingChildLink(String, String)
+  SelfLoopJoint(String, String)
+  MultipleParentJoints(String)
+  KinematicCycle(String)
+  DisconnectedGraph(String)
+  ZeroJointAxis(String)
+  MissingJointLimit(String)
+  InvalidJointLimit(String, String)
+  InvalidMimicJoint(String, String)
+  InvalidGeometry(String, String)
+  NonPositiveMass(String, Double)
+  NonPhysicalInertia(String, String)
+}
+pub fn Diagnostic::equal(Self, Self) -> Bool
+pub fn Diagnostic::message(Self) -> String
+pub fn Diagnostic::severity(Self) -> Severity
+pub fn Diagnostic::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) enum Geometry {
+  Box((Double, Double, Double))
+  Cylinder(Double, Double)
+  Sphere(Double)
+  Mesh(String, (Double, Double, Double)?)
+}
+pub fn Geometry::box(Double, Double, Double) -> Self
+pub fn Geometry::box_mm(Double, Double, Double) -> Self
+pub fn Geometry::cylinder(Double, Double) -> Self
+pub fn Geometry::cylinder_mm(Double, Double) -> Self
+pub fn Geometry::equal(Self, Self) -> Bool
+pub fn Geometry::mesh(String, scale? : (Double, Double, Double)?) -> Self
+pub fn Geometry::mesh_mm(String) -> Self
+pub fn Geometry::sphere(Double) -> Self
+pub fn Geometry::sphere_mm(Double) -> Self
+pub fn Geometry::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Inertia {
+  ixx : Double
+  ixy : Double
+  ixz : Double
+  iyy : Double
+  iyz : Double
+  izz : Double
+}
+pub fn Inertia::add(Self, Self) -> Self
+pub fn Inertia::diagonal(Double, Double, Double) -> Self
+pub fn Inertia::equal(Self, Self) -> Bool
+pub fn Inertia::from_matrix(Matrix3x3) -> Self
+pub fn Inertia::new(ixx~ : Double, iyy~ : Double, izz~ : Double, ixy? : Double, ixz? : Double, iyz? : Double) -> Self
+pub fn Inertia::rotate(Self, Matrix3x3) -> Self
+pub fn Inertia::scale(Self, Double) -> Self
+pub fn Inertia::shift_by_offset(Self, Double, (Double, Double, Double)) -> Self
+pub fn Inertia::to_matrix(Self) -> Matrix3x3
+pub fn Inertia::to_repr(Self) -> @debug.Repr
+pub fn Inertia::zero() -> Self
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Inertial {
+  origin : Origin
+  mass : Double
+  inertia : Inertia
+}
+pub fn Inertial::combine(Array[Self]) -> Self
+pub fn Inertial::equal(Self, Self) -> Bool
+pub fn Inertial::from_box(Double, Double, Double, mass~ : Double, origin? : Origin) -> Self
+pub fn Inertial::from_box_density(Double, Double, Double, density~ : Density, origin? : Origin) -> Self
+pub fn Inertial::from_cylinder(Double, Double, mass~ : Double, origin? : Origin) -> Self
+pub fn Inertial::from_cylinder_density(Double, Double, density~ : Density, origin? : Origin) -> Self
+pub fn Inertial::from_geometry_density(Geometry, density~ : Density, origin? : Origin) -> Self?
+pub fn Inertial::from_sphere(Double, mass~ : Double, origin? : Origin) -> Self
+pub fn Inertial::from_sphere_density(Double, density~ : Density, origin? : Origin) -> Self
+pub fn Inertial::from_triangles(Array[((Double, Double, Double), (Double, Double, Double), (Double, Double, Double))], density~ : Density, scale? : Double) -> Self
+pub fn Inertial::from_triangles_mm(Array[((Double, Double, Double), (Double, Double, Double), (Double, Double, Double))], density~ : Density) -> Self
+pub fn Inertial::from_tube(Double, Double, Double, mass~ : Double, origin? : Origin) -> Self
+pub fn Inertial::from_tube_density(Double, Double, Double, density~ : Density, origin? : Origin) -> Self
+pub fn Inertial::new(Double, Inertia, origin? : Origin) -> Self
+pub fn Inertial::to_repr(Self) -> @debug.Repr
+pub fn Inertial::transform_by(Self, Transform) -> Self
+pub fn Inertial::with_origin(Self, Origin) -> Self
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Joint {
+  name : String
+  joint_type : JointType
+  origin : Origin
+  parent : String
+  child : String
+  axis : (Double, Double, Double)
+  limit : JointLimit?
+  dynamics : JointDynamics?
+  calibration : JointCalibration?
+  safety_controller : SafetyController?
+  mimic : JointMimic?
+  extra : Array[RawXmlNode]
+}
+pub fn Joint::add_extra(Self, RawXmlNode) -> Self
+pub fn Joint::continuous(String, parent~ : String, child~ : String, origin? : Origin, axis? : (Double, Double, Double), limit? : JointLimit?) -> Self
+pub fn Joint::equal(Self, Self) -> Bool
+pub fn Joint::fixed(String, parent~ : String, child~ : String, origin? : Origin) -> Self
+pub fn Joint::floating(String, parent~ : String, child~ : String, origin? : Origin) -> Self
+pub fn Joint::from_mates(String, JointType, parent_link~ : String, parent_mate~ : MateConnector, child_link~ : String, child_mate~ : MateConnector, offset? : Double, angle_rad? : Double, flip_axis? : Bool, limit? : JointLimit?, dynamics? : JointDynamics?) -> Self
+pub fn Joint::new(String, JointType, parent~ : String, child~ : String, origin? : Origin, axis? : (Double, Double, Double)) -> Self
+pub fn Joint::planar(String, parent~ : String, child~ : String, origin? : Origin, axis? : (Double, Double, Double)) -> Self
+pub fn Joint::prismatic(String, parent~ : String, child~ : String, limit~ : JointLimit, origin? : Origin, axis? : (Double, Double, Double)) -> Self
+pub fn Joint::revolute(String, parent~ : String, child~ : String, limit~ : JointLimit, origin? : Origin, axis? : (Double, Double, Double)) -> Self
+pub fn Joint::to_repr(Self) -> @debug.Repr
+pub fn Joint::with_axis(Self, (Double, Double, Double)) -> Self
+pub fn Joint::with_calibration(Self, JointCalibration) -> Self
+pub fn Joint::with_dynamics(Self, JointDynamics) -> Self
+pub fn Joint::with_limit(Self, JointLimit) -> Self
+pub fn Joint::with_mimic(Self, JointMimic) -> Self
+pub fn Joint::with_origin(Self, Origin) -> Self
+pub fn Joint::with_safety_controller(Self, SafetyController) -> Self
+
+#derive(Eq, @debug.Debug)
+pub(all) struct JointCalibration {
+  rising : Double?
+  falling : Double?
+}
+pub fn JointCalibration::equal(Self, Self) -> Bool
+pub fn JointCalibration::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct JointDynamics {
+  damping : Double
+  friction : Double
+}
+pub fn JointDynamics::equal(Self, Self) -> Bool
+pub fn JointDynamics::new(damping? : Double, friction? : Double) -> Self
+pub fn JointDynamics::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct JointLimit {
+  lower : Double?
+  upper : Double?
+  effort : Double
+  velocity : Double
+}
+pub fn JointLimit::equal(Self, Self) -> Bool
+pub fn JointLimit::new(effort~ : Double, velocity~ : Double, lower? : Double?, upper? : Double?) -> Self
+pub fn JointLimit::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct JointMimic {
+  joint : String
+  multiplier : Double
+  offset : Double
+}
+pub fn JointMimic::equal(Self, Self) -> Bool
+pub fn JointMimic::new(String, multiplier? : Double, offset? : Double) -> Self
+pub fn JointMimic::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) enum JointType {
+  Revolute
+  Continuous
+  Prismatic
+  Fixed
+  Floating
+  Planar
+}
+pub fn JointType::equal(Self, Self) -> Bool
+pub fn JointType::from_urdf_str(String) -> Self?
+pub fn JointType::to_repr(Self) -> @debug.Repr
+pub fn JointType::to_urdf_str(Self) -> String
+
+pub struct Length {
+  meters : Double
+}
+pub fn Length::add(Self, Self) -> Self
+pub fn Length::cm(Double) -> Self
+pub fn Length::inches(Double) -> Self
+pub fn Length::m(Double) -> Self
+pub fn Length::mm(Double) -> Self
+pub fn Length::neg(Self) -> Self
+pub fn Length::scale(Self, Double) -> Self
+pub fn Length::sub(Self, Self) -> Self
+pub fn Length::to_m(Self) -> Double
+pub fn Length::to_mm(Self) -> Double
+pub impl Add for Length
+pub impl Neg for Length
+pub impl Sub for Length
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Link {
+  name : String
+  inertial : Inertial?
+  visuals : Array[Visual]
+  collisions : Array[Collision]
+  extra : Array[RawXmlNode]
+}
+pub fn Link::add_collision(Self, Collision) -> Self
+pub fn Link::add_extra(Self, RawXmlNode) -> Self
+pub fn Link::add_visual(Self, Visual) -> Self
+pub fn Link::equal(Self, Self) -> Bool
+pub fn Link::new(String) -> Self
+pub fn Link::rebase_to_mate(Self, MateConnector) -> Self
+pub fn Link::to_repr(Self) -> @debug.Repr
+pub fn Link::with_inertial(Self, Inertial) -> Self
+
+pub struct Mass {
+  kilograms : Double
+}
+pub fn Mass::add(Self, Self) -> Self
+pub fn Mass::grams(Double) -> Self
+pub fn Mass::kg(Double) -> Self
+pub fn Mass::lbs(Double) -> Self
+pub fn Mass::sub(Self, Self) -> Self
+pub fn Mass::to_grams(Self) -> Double
+pub fn Mass::to_kg(Self) -> Double
+pub impl Add for Mass
+pub impl Sub for Mass
+
+#derive(Eq, @debug.Debug)
+pub(all) struct MateConnector {
+  name : String
+  origin : Origin
+  axis : (Double, Double, Double)
+}
+pub fn MateConnector::equal(Self, Self) -> Bool
+pub fn MateConnector::from_mm_deg(String, x? : Double, y? : Double, z? : Double, rx_deg? : Double, ry_deg? : Double, rz_deg? : Double, axis? : (Double, Double, Double)) -> Self
+pub fn MateConnector::new(String, origin? : Origin, axis? : (Double, Double, Double)) -> Self
+pub fn MateConnector::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Material {
+  name : String
+  color : Rgba?
+  texture : String?
+}
+pub fn Material::color_only(String, Rgba) -> Self
+pub fn Material::equal(Self, Self) -> Bool
+pub fn Material::new(String, color? : Rgba?, texture? : String?) -> Self
+pub fn Material::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Matrix3x3 {
+  m00 : Double
+  m01 : Double
+  m02 : Double
+  m10 : Double
+  m11 : Double
+  m12 : Double
+  m20 : Double
+  m21 : Double
+  m22 : Double
+}
+pub fn Matrix3x3::apply(Self, (Double, Double, Double)) -> (Double, Double, Double)
+pub fn Matrix3x3::equal(Self, Self) -> Bool
+pub fn Matrix3x3::identity() -> Self
+pub fn Matrix3x3::mul(Self, Self) -> Self
+pub fn Matrix3x3::to_repr(Self) -> @debug.Repr
+pub fn Matrix3x3::transpose(Self) -> Self
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Origin {
+  xyz : (Double, Double, Double)
+  rpy : (Double, Double, Double)
+}
+pub fn Origin::equal(Self, Self) -> Bool
+pub fn Origin::from_mm_deg(x? : Double, y? : Double, z? : Double, rx_deg? : Double, ry_deg? : Double, rz_deg? : Double) -> Self
+pub fn Origin::identity() -> Self
+pub fn Origin::is_identity(Self) -> Bool
+pub fn Origin::new(xyz? : (Double, Double, Double), rpy? : (Double, Double, Double)) -> Self
+pub fn Origin::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct RawXmlNode {
+  tag : String
+  attrs : Array[(String, String)]
+  text : String
+  children : Array[RawXmlNode]
+}
+pub fn RawXmlNode::equal(Self, Self) -> Bool
+pub fn RawXmlNode::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Rgba {
+  r : Double
+  g : Double
+  b : Double
+  a : Double
+}
+pub fn Rgba::black() -> Self
+pub fn Rgba::blue() -> Self
+pub fn Rgba::cyan() -> Self
+pub fn Rgba::equal(Self, Self) -> Bool
+pub fn Rgba::green() -> Self
+pub fn Rgba::grey() -> Self
+pub fn Rgba::magenta() -> Self
+pub fn Rgba::new(Double, Double, Double, a? : Double) -> Self
+pub fn Rgba::orange() -> Self
+pub fn Rgba::purple() -> Self
+pub fn Rgba::red() -> Self
+pub fn Rgba::silver() -> Self
+pub fn Rgba::to_repr(Self) -> @debug.Repr
+pub fn Rgba::white() -> Self
+pub fn Rgba::yellow() -> Self
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Robot {
+  name : String
+  version : String?
+  documentation : String
+  materials : Array[Material]
+  links : Array[Link]
+  joints : Array[Joint]
+  transmissions : Array[Transmission]
+  extra : Array[RawXmlNode]
+}
+pub fn Robot::add_extra(Self, RawXmlNode) -> Self
+pub fn Robot::add_joint(Self, Joint) -> Self
+pub fn Robot::add_joints(Self, Array[Joint]) -> Self
+pub fn Robot::add_link(Self, Link) -> Self
+pub fn Robot::add_links(Self, Array[Link]) -> Self
+pub fn Robot::add_material(Self, Material) -> Self
+pub fn Robot::add_transmission(Self, Transmission) -> Self
+pub fn Robot::diagnostics(Self) -> Array[Diagnostic]
+pub fn Robot::equal(Self, Self) -> Bool
+pub fn Robot::forward_kinematics(Self, joint_positions? : Map[String, Double]) -> Map[String, Transform]
+pub fn Robot::get_joint(Self, String) -> Joint?
+pub fn Robot::get_link(Self, String) -> Link?
+pub fn Robot::has_errors(Self) -> Bool
+pub fn Robot::link_world_origins(Self, joint_positions? : Map[String, Double]) -> Map[String, Origin]
+pub fn Robot::new(String, version? : String?, documentation? : String) -> Self
+pub fn Robot::root_link(Self) -> String?
+pub fn Robot::to_repr(Self) -> @debug.Repr
+pub fn Robot::to_string(Self) -> String
+pub fn Robot::to_urdf_file_checked(Self) -> String
+pub fn Robot::to_urdf_xml(Self) -> String
+pub fn Robot::with_documentation(Self, String) -> Self
+pub fn Robot::with_version(Self, String) -> Self
+pub async fn Robot::write_urdf(Self, String?, checked? : Bool) -> Unit
+pub async fn Robot::write_urdf_file(Self, String?, checked? : Bool) -> Unit
+
+#derive(Eq, @debug.Debug)
+pub(all) struct SafetyController {
+  soft_lower_limit : Double
+  soft_upper_limit : Double
+  k_position : Double
+  k_velocity : Double
+}
+pub fn SafetyController::equal(Self, Self) -> Bool
+pub fn SafetyController::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) enum Severity {
+  Info
+  Warning
+  Error
+}
+pub fn Severity::all() -> Array[Self]
+pub fn Severity::equal(Self, Self) -> Bool
+pub fn Severity::is_error(Self) -> Bool
+pub fn Severity::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Transform {
+  rot : Matrix3x3
+  trans : (Double, Double, Double)
+}
+pub fn Transform::apply_dir(Self, (Double, Double, Double)) -> (Double, Double, Double)
+pub fn Transform::apply_point(Self, (Double, Double, Double)) -> (Double, Double, Double)
+pub fn Transform::compose(Self, Self) -> Self
+pub fn Transform::equal(Self, Self) -> Bool
+pub fn Transform::from_origin(Origin) -> Self
+pub fn Transform::identity() -> Self
+pub fn Transform::inverse(Self) -> Self
+pub fn Transform::to_origin(Self) -> Origin
+pub fn Transform::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Transmission {
+  name : String
+  trans_type : String
+  joints : Array[TransmissionJoint]
+  actuators : Array[Actuator]
+}
+pub fn Transmission::equal(Self, Self) -> Bool
+pub fn Transmission::simple(String, String, String, reduction? : Double, hardware_interface? : String) -> Self
+pub fn Transmission::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct TransmissionJoint {
+  name : String
+  hardware_interfaces : Array[String]
+}
+pub fn TransmissionJoint::equal(Self, Self) -> Bool
+pub fn TransmissionJoint::to_repr(Self) -> @debug.Repr
+
+#derive(Eq, @debug.Debug)
+pub(all) struct Visual {
+  name : String?
+  origin : Origin
+  geometry : Geometry
+  material : Material?
+}
+pub fn Visual::equal(Self, Self) -> Bool
+pub fn Visual::new(Geometry, name? : String?, origin? : Origin, material? : Material?) -> Self
+pub fn Visual::to_repr(Self) -> @debug.Repr
+pub fn Visual::with_color(Self, String, Rgba) -> Self
+pub fn Visual::with_material(Self, Material) -> Self
+pub fn Visual::with_name(Self, String) -> Self
+pub fn Visual::with_origin(Self, Origin) -> Self
+
+// Type aliases
+pub type Vec3 = (Double, Double, Double)
+
+// Traits
