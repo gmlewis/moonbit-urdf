@@ -1,0 +1,9 @@
+import {
+  "gmlewis/urdf",
+  "gmlewis/urdf/cli",
+  "gmlewis/urdf/examples/common",
+  "moonbitlang/async",
+  "moonbitlang/core/math",
+}
+
+pkgtype(kind: "executable")

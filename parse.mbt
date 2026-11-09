@@ -4,7 +4,7 @@
 ///|
 /// An XML element together with its source location, kept internally so that
 /// conversion errors can point at the offending line and column.
-struct XNode {
+priv struct XNode {
   tag : String
   attrs : Array[(String, String)]
   attr_pos : Array[(Int32, Int32)]
@@ -15,25 +15,25 @@ struct XNode {
 }
 
 ///|
-struct XmlParser {
+priv struct XmlParser {
   text : String
-  pos : Array[Int]
+  pos : Array[Int32]
   line : Array[Int32]
   col : Array[Int32]
 }
 
 ///|
 fn xp_new(text : String) -> XmlParser {
-  { text, pos: [0], line: [1], col: [1] }
+  { text, pos: [0], line: [1], col: [1], }
 }
 
 ///|
-fn xp_len(p : XmlParser) -> Int {
+fn xp_len(p : XmlParser) -> Int32 {
   p.text.length()
 }
 
 ///|
-fn xp_at(p : XmlParser, i : Int) -> Int {
+fn xp_at(p : XmlParser, i : Int32) -> Int32 {
   if i < 0 || i >= xp_len(p) {
     -1
   } else {
@@ -42,7 +42,7 @@ fn xp_at(p : XmlParser, i : Int) -> Int {
 }
 
 ///|
-fn xp_peek(p : XmlParser) -> Int {
+fn xp_peek(p : XmlParser) -> Int32 {
   xp_at(p, p.pos[0])
 }
 
@@ -76,7 +76,7 @@ fn xp_starts(p : XmlParser, s : String) -> Bool {
 }
 
 ///|
-fn xp_substr(p : XmlParser, start : Int, end : Int) -> String {
+fn xp_substr(p : XmlParser, start : Int32, end : Int32) -> String {
   String::unsafe_substring(p.text, start~, end~)
 }
 
@@ -106,7 +106,7 @@ fn xp_error(p : XmlParser, message : String) -> Unit raise UrdfParseError {
 }
 
 ///|
-fn is_space_code(c : Int) -> Bool {
+fn is_space_code(c : Int32) -> Bool {
   c == Char::to_int(' ') ||
   c == Char::to_int('\t') ||
   c == Char::to_int('\r') ||
@@ -121,7 +121,7 @@ fn xp_skip_ws(p : XmlParser) -> Unit {
 }
 
 ///|
-fn is_name_char(c : Int) -> Bool {
+fn is_name_char(c : Int32) -> Bool {
   c >= 0 &&
   c != Char::to_int(' ') &&
   c != Char::to_int('\t') &&
@@ -192,7 +192,8 @@ fn xp_skip_misc(p : XmlParser) -> Unit raise UrdfParseError {
 
 ///|
 fn xml_unescape(s : String) -> String {
-  s.replace_all(old="&lt;", new="<")
+  s
+  .replace_all(old="&lt;", new="<")
   .replace_all(old="&gt;", new=">")
   .replace_all(old="&quot;", new="\"")
   .replace_all(old="&apos;", new="'")
@@ -278,15 +279,7 @@ fn xp_parse_element(p : XmlParser) -> XNode raise UrdfParseError {
     attr_pos.push((a_line, a_col))
   }
   if self_closing {
-    return {
-      tag,
-      attrs,
-      attr_pos,
-      text: "",
-      children: [],
-      line,
-      col,
-    }
+    return { tag, attrs, attr_pos, text: "", children: [], line, col, }
   }
   let children : Array[XNode] = []
   let texts : Array[String] = []
@@ -351,19 +344,13 @@ fn xp_parse_element(p : XmlParser) -> XNode raise UrdfParseError {
     texts.push(xml_unescape(xp_substr(p, t_start, p.pos[0])))
   }
   let joined = texts.join("").trim().to_owned()
-  {
-    tag,
-    attrs,
-    attr_pos,
-    text: joined,
-    children,
-    line,
-    col,
-  }
+  { tag, attrs, attr_pos, text: joined, children, line, col, }
 }
 
 ///|
-fn parse_located_document(xml : String) -> (XNode, String?) raise UrdfParseError {
+fn parse_located_document(
+  xml : String,
+) -> (XNode, String?) raise UrdfParseError {
   let p = xp_new(xml)
   xp_skip_ws(p)
   // Leading processing instructions may appear before any comment.
@@ -393,7 +380,7 @@ fn to_raw(node : XNode) -> RawXmlNode {
   for child in node.children {
     children.push(to_raw(child))
   }
-  { tag: node.tag, attrs: node.attrs, text: node.text, children }
+  { tag: node.tag, attrs: node.attrs, text: node.text, children, }
 }
 
 ///|
@@ -471,7 +458,7 @@ fn xn_extra(node : XNode, known : Array[String]) -> Array[RawXmlNode] {
 }
 
 ///|
-fn is_space_view(c : Int) -> Bool {
+fn is_space_view(c : Int32) -> Bool {
   c == Char::to_int(' ') ||
   c == Char::to_int('\t') ||
   c == Char::to_int('\r') ||
@@ -491,7 +478,8 @@ fn split_ws(value : String) -> Array[String] {
       break
     }
     let start = i
-    while i < n && !is_space_view(UInt16::to_int(String::code_unit_at(value, i))) {
+    while i < n &&
+          !is_space_view(UInt16::to_int(String::code_unit_at(value, i))) {
       i = i + 1
     }
     out.push(String::unsafe_substring(value, start~, end=i))
@@ -730,7 +718,7 @@ fn parse_link(node : XNode) -> Link raise UrdfParseError {
     collisions.push(parse_collision(child))
   }
   let extra = xn_extra(node, ["inertial", "visual", "collision"])
-  { name, inertial, visuals, collisions, extra }
+  { name, inertial, visuals, collisions, extra, }
 }
 
 ///|
@@ -819,7 +807,7 @@ fn parse_joint(node : XNode) -> Joint raise UrdfParseError {
         Some(_) => Some(parse_double_attr(c, "falling", 0.0))
         None => None
       }
-      Some({ rising, falling })
+      Some({ rising, falling, })
     }
     None => None
   }
@@ -844,20 +832,10 @@ fn parse_joint(node : XNode) -> Joint raise UrdfParseError {
       )
     None => None
   }
-  let extra = xn_extra(
-    node,
-    [
-      "origin",
-      "parent",
-      "child",
-      "axis",
-      "limit",
-      "dynamics",
-      "calibration",
-      "safety_controller",
-      "mimic",
-    ],
-  )
+  let extra = xn_extra(node, [
+    "origin", "parent", "child", "axis", "limit", "dynamics", "calibration", "safety_controller",
+    "mimic",
+  ])
   {
     name,
     joint_type,
@@ -899,7 +877,8 @@ fn parse_transmission(node : XNode) -> Transmission raise UrdfParseError {
       interfaces.push(child.text)
     }
     let reduction = match xn_child(actuator_node, "mechanicalReduction") {
-      Some(r) => Some(parse_double_at(r.text, r.line, r.col, "mechanicalReduction"))
+      Some(r) =>
+        Some(parse_double_at(r.text, r.line, r.col, "mechanicalReduction"))
       None => None
     }
     actuators.push({
@@ -908,11 +887,14 @@ fn parse_transmission(node : XNode) -> Transmission raise UrdfParseError {
       mechanical_reduction: reduction,
     })
   }
-  { name, trans_type, joints, actuators }
+  { name, trans_type, joints, actuators, }
 }
 
 ///|
-fn robot_from_node(root : XNode, documentation : String) -> Robot raise UrdfParseError {
+fn robot_from_node(
+  root : XNode,
+  documentation : String,
+) -> Robot raise UrdfParseError {
   if root.tag != "robot" {
     raise UrdfParseError({
       message: "expected <robot> root element, found <\{root.tag}>",
@@ -939,10 +921,7 @@ fn robot_from_node(root : XNode, documentation : String) -> Robot raise UrdfPars
   for child in xn_children(root, "transmission") {
     transmissions.push(parse_transmission(child))
   }
-  let extra = xn_extra(
-    root,
-    ["material", "link", "joint", "transmission"],
-  )
+  let extra = xn_extra(root, ["material", "link", "joint", "transmission"])
   {
     name,
     version,
@@ -981,7 +960,7 @@ pub fn parse_urdf_from_string_result(xml : String) -> ParseUrdfResult {
 
 ///|
 /// Reads and parses a URDF file.
-pub async fn parse_urdf_from_file(path : String) -> Robot raise {
+pub async fn parse_urdf_from_file(path : String) -> Robot {
   let text = @fs.read_file(path).text()
   parse_urdf_from_string(text)
 }

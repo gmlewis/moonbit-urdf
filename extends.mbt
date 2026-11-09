@@ -309,6 +309,7 @@ pub extend MateConnector with Eq::{equal}
 pub extend MateConnector with Eq::{not_equal}
 
 ///|
+
 ///|
 pub extend Matrix3x3 with Debug::{to_repr}
 

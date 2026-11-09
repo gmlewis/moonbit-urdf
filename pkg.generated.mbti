@@ -12,7 +12,17 @@ pub fn fmt_rgba(Rgba) -> String
 
 pub fn fmt_vec3((Double, Double, Double)) -> String
 
+pub fn format_urdf_parse_error(UrdfParseErrorInfo) -> String
+
 pub fn matrix_to_rpy(Matrix3x3) -> (Double, Double, Double)
+
+pub async fn parse_urdf_from_file(String) -> Robot
+
+pub fn parse_urdf_from_string(String) -> Robot raise UrdfParseError
+
+pub fn parse_urdf_from_string_result(String) -> ParseUrdfResult
+
+pub fn parse_xml_node(String) -> RawXmlNode raise UrdfParseError
 
 pub fn rotation_matrix_axis_angle((Double, Double, Double), Double) -> Matrix3x3
 
@@ -39,6 +49,9 @@ pub async fn write_text_file(String, String?) -> Unit
 pub fn xml_escape(String) -> String
 
 // Errors
+pub suberror UrdfParseError {
+  UrdfParseError(UrdfParseErrorInfo)
+}
 
 // Types and methods
 #derive(Eq, @debug.Debug)
@@ -352,6 +365,11 @@ pub fn Matrix3x3::mul(Self, Self) -> Self
 pub fn Matrix3x3::to_repr(Self) -> @debug.Repr
 pub fn Matrix3x3::transpose(Self) -> Self
 
+pub(all) struct MeshAsset {
+  rel_path : String
+  bytes : Bytes
+}
+
 #derive(Eq, @debug.Debug)
 pub(all) struct Origin {
   xyz : (Double, Double, Double)
@@ -363,6 +381,11 @@ pub fn Origin::identity() -> Self
 pub fn Origin::is_identity(Self) -> Bool
 pub fn Origin::new(xyz? : (Double, Double, Double), rpy? : (Double, Double, Double)) -> Self
 pub fn Origin::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ParseUrdfResult {
+  Ok(Robot)
+  Err(UrdfParseErrorInfo)
+}
 
 #derive(Eq, @debug.Debug)
 pub(all) struct RawXmlNode {
@@ -487,6 +510,27 @@ pub(all) struct TransmissionJoint {
 }
 pub fn TransmissionJoint::equal(Self, Self) -> Bool
 pub fn TransmissionJoint::to_repr(Self) -> @debug.Repr
+
+pub(all) struct UrdfBundle {
+  package_name : String
+  robot : Robot
+  meshes : Array[MeshAsset]
+}
+pub fn UrdfBundle::add_mesh_bytes(Self, String, Bytes) -> Self
+pub fn UrdfBundle::add_mesh_text(Self, String, String) -> Self
+pub fn UrdfBundle::new(String, Robot) -> Self
+pub fn UrdfBundle::package_xml(Self, version? : String, description? : String, maintainer? : String, email? : String, license? : String) -> String
+pub async fn UrdfBundle::write_to_dir(Self, String, checked? : Bool) -> Unit
+
+#derive(Eq, @debug.Debug)
+pub(all) struct UrdfParseErrorInfo {
+  message : String
+  line : Int32?
+  col : Int32?
+  snippet : String?
+}
+pub fn UrdfParseErrorInfo::equal(Self, Self) -> Bool
+pub fn UrdfParseErrorInfo::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
 pub(all) struct Visual {

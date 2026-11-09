@@ -19,22 +19,20 @@ fn sample_robot() -> @urdf.Robot {
   )
   .add_material(@urdf.Material::color_only("orange", @urdf.Rgba::orange()))
   .add_link(
-    @urdf.Link::new("base").with_inertial(
-      @urdf.Inertial::from_box(0.2, 0.3, 0.4, mass=5.0),
-    ).add_visual(
+    @urdf.Link::new("base")
+    .with_inertial(@urdf.Inertial::from_box(0.2, 0.3, 0.4, mass=5.0))
+    .add_visual(
       @urdf.Visual::new(@urdf.Geometry::box(0.2, 0.3, 0.4))
       .with_name("body")
       .with_color("orange", @urdf.Rgba::orange()),
-    ).add_collision(
-      @urdf.Collision::new(@urdf.Geometry::box(0.2, 0.3, 0.4)),
-    ).add_extra(
-      {
-        tag: "sensor",
-        attrs: [("name", "imu")],
-        text: "",
-        children: [],
-      },
-    ),
+    )
+    .add_collision(@urdf.Collision::new(@urdf.Geometry::box(0.2, 0.3, 0.4)))
+    .add_extra({
+      tag: "sensor",
+      attrs: [("name", "imu")],
+      text: "",
+      children: [],
+    }),
   )
   .add_link(@urdf.Link::new("arm"))
   .add_joint(
@@ -121,9 +119,7 @@ test "preserves gazebo and ros2_control blocks" {
 ///|
 test "parses generic xml nodes" {
   let xml = "<?xml version=\"1.0\"?>\n<foo a=\"1&amp;2\"><bar>hi</bar>tail</foo>\n"
-  let parsed : @urdf.RawXmlNode? = try {
-    Some(@urdf.parse_xml_node(xml))
-  } catch {
+  let parsed : @urdf.RawXmlNode? = try Some(@urdf.parse_xml_node(xml)) catch {
     _ => None
   } noraise {
     v => v
@@ -138,6 +134,37 @@ test "parses generic xml nodes" {
       assert_eq(node.text, "tail")
     }
     None => fail("unexpected parse error")
+  }
+}
+
+///|
+test "roundtrips safety controllers and calibration" {
+  let calibration : @urdf.JointCalibration = {
+    rising: Some(0.1),
+    falling: Some(-0.1),
+  }
+  let robot = @urdf.Robot::new("r")
+    .add_links([@urdf.Link::new("a"), @urdf.Link::new("b")])
+    .add_joint(
+      @urdf.Joint::revolute(
+        "j",
+        parent="a",
+        child="b",
+        limit=@urdf.JointLimit::new(effort=1.0, velocity=1.0),
+      )
+      .with_calibration(calibration)
+      .with_safety_controller(@urdf.SafetyController::{
+        soft_lower_limit: -0.9,
+        soft_upper_limit: 0.9,
+        k_position: 5.0,
+        k_velocity: 1.0,
+      }),
+    )
+  let xml = robot.to_urdf_xml()
+  match @urdf.parse_urdf_from_string_result(xml) {
+    @urdf.ParseUrdfResult::Ok(parsed) => assert_true(parsed == robot)
+    @urdf.ParseUrdfResult::Err(info) =>
+      fail("parse failed: " + @urdf.format_urdf_parse_error(info))
   }
 }
 
@@ -194,9 +221,7 @@ test "reports an invalid float with line and column" {
 ///|
 test "reports unterminated and truncated input" {
   let cases = [
-    "<robot name=\"r\"><link name=\"a\">",
-    "<robot name=\"r\"",
-    "<robot name=\"r\"><!-- unclosed comment </robot>",
+    "<robot name=\"r\"><link name=\"a\">", "<robot name=\"r\"", "<robot name=\"r\"><!-- unclosed comment </robot>",
     "",
   ]
   for xml in cases {

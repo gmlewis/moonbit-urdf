@@ -1,0 +1,28 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "gmlewis/urdf/examples/common"
+
+import {
+  "gmlewis/urdf",
+  "gmlewis/urdf/cli",
+}
+
+// Values
+pub fn output_paths(@cli.Args) -> OutputPaths
+
+pub fn with_output_args(Map[String, @cli.Arg], bundle? : Bool, out_help? : String) -> Map[String, @cli.Arg]
+
+pub async fn write_output(@urdf.Robot, OutputPaths, bundle? : @urdf.UrdfBundle) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct OutputPaths {
+  urdf : String?
+  bundle_dir : String?
+  unchecked : Bool
+  nostdout : Bool
+}
+
+// Type aliases
+
+// Traits
