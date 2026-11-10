@@ -1,0 +1,79 @@
+name: URDF validation
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  fast:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install MoonBit
+        run: |
+          /bin/bash -c "$(curl -fsSL https://cli.moonbitlang.com/install/unix.sh)"
+          echo "/home/runner/.moon/bin" >> $GITHUB_PATH
+
+      - name: moon version
+        run: moon version --all
+
+      - name: moon update
+        run: moon update
+
+      - name: validator self-test
+        run: python3 scripts/validate_urdf_test.py
+
+      - name: generate and validate every URDF example
+        run: |
+          for n in 01 02 03 04 05 06; do
+            ./examples/run-example.sh "$n" -o "/tmp/urdf-example-$n.urdf" --validate
+          done
+
+  deep:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install MoonBit
+        run: |
+          /bin/bash -c "$(curl -fsSL https://cli.moonbitlang.com/install/unix.sh)"
+          echo "/home/runner/.moon/bin" >> $GITHUB_PATH
+
+      - name: moon version
+        run: moon version --all
+
+      - name: moon update
+        run: moon update
+
+      - name: validator self-test
+        run: python3 scripts/validate_urdf_test.py
+
+      - name: generate ROS bundles and validate mesh references
+        run: |
+          for n in 01 02 03 04 05 06; do
+            bundle="/tmp/urdf-bundle-$n"
+            rm -rf "$bundle"
+            ./examples/run-example.sh "$n" --bundle "$bundle"
+            urdf="$(find "$bundle" -name '*.urdf' -print -quit)"
+            test -n "$urdf"
+            package_root="$(dirname "$(dirname "$urdf")")"
+            python3 scripts/validate_urdf.py \
+              --check-meshes --package-root "$package_root" "$urdf"
+          done
