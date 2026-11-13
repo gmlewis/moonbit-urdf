@@ -74,8 +74,11 @@
 ///
 /// ## Mate connectors and forward kinematics
 ///
-/// A `MateConnector` is a named origin plus an axis. `Joint::from_mates()`
-/// snaps two connectors together with `snap_mates()`, and
+/// A `MateConnector` is a named frame plus an axis. It is the canonical type
+/// from `gmlewis/step/components/common`: the frame is stored in millimetres
+/// and degrees and converted with `from_m_rad` / `to_m_rad` at the URDF
+/// boundary. `Joint::from_mates()` snaps two connectors together with
+/// `snap_mates()`, and
 /// `Robot::forward_kinematics(joint_positions)` returns the world `Transform`
 /// of every link. `Robot::link_world_origins()` returns the same data as
 /// `Origin`s, and `Robot::root_link()` finds the kinematic root.
@@ -464,19 +467,6 @@ pub extend Severity with Eq::{equal}
 #deprecated("Use `!=` instead", skip_current_package=true)
 #doc(hidden)
 pub extend Severity with Eq::{not_equal}
-
-///|
-pub extend MateConnector with Debug::{to_repr}
-
-///|
-pub extend MateConnector with Eq::{equal}
-
-///|
-#deprecated("Use `!=` instead", skip_current_package=true)
-#doc(hidden)
-pub extend MateConnector with Eq::{not_equal}
-
-///|
 
 ///|
 pub extend Matrix3x3 with Debug::{to_repr}

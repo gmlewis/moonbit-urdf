@@ -2,6 +2,7 @@
 package "gmlewis/urdf"
 
 import {
+  "gmlewis/step/components/common",
   "moonbitlang/core/debug",
 }
 
@@ -28,7 +29,7 @@ pub fn rotation_matrix_axis_angle((Double, Double, Double), Double) -> Matrix3x3
 
 pub fn rotation_matrix_rpy(Double, Double, Double) -> Matrix3x3
 
-pub fn snap_mates(MateConnector, MateConnector, offset? : Double, angle_rad? : Double, flip_axis? : Bool) -> (Origin, (Double, Double, Double))
+pub fn snap_mates(@common.MateConnector, @common.MateConnector, offset? : Double, angle_rad? : Double, flip_axis? : Bool) -> (Origin, (Double, Double, Double))
 
 pub fn v3_add((Double, Double, Double), (Double, Double, Double)) -> (Double, Double, Double)
 
@@ -211,7 +212,8 @@ pub fn Joint::continuous(String, parent~ : String, child~ : String, origin? : Or
 pub fn Joint::equal(Self, Self) -> Bool
 pub fn Joint::fixed(String, parent~ : String, child~ : String, origin? : Origin) -> Self
 pub fn Joint::floating(String, parent~ : String, child~ : String, origin? : Origin) -> Self
-pub fn Joint::from_mates(String, JointType, parent_link~ : String, parent_mate~ : MateConnector, child_link~ : String, child_mate~ : MateConnector, offset? : Double, angle_rad? : Double, flip_axis? : Bool, limit? : JointLimit?, dynamics? : JointDynamics?) -> Self
+pub fn Joint::from_mates(String, JointType, parent_link~ : String, parent_mate~ : @common.MateConnector, child_link~ : String, child_mate~ : @common.MateConnector, offset? : Double, angle_rad? : Double, flip_axis? : Bool, limit? : JointLimit?, dynamics? : JointDynamics?) -> Self
+pub fn Joint::from_pair(String, JointType, parent_link~ : String, parent_mate~ : @common.MateConnector, child_link~ : String, child_mate~ : @common.MateConnector, pair~ : @common.MatePair, limit? : JointLimit?, dynamics? : JointDynamics?) -> Self
 pub fn Joint::new(String, JointType, parent~ : String, child~ : String, origin? : Origin, axis? : (Double, Double, Double)) -> Self
 pub fn Joint::planar(String, parent~ : String, child~ : String, origin? : Origin, axis? : (Double, Double, Double)) -> Self
 pub fn Joint::prismatic(String, parent~ : String, child~ : String, limit~ : JointLimit, origin? : Origin, axis? : (Double, Double, Double)) -> Self
@@ -307,7 +309,7 @@ pub fn Link::add_extra(Self, RawXmlNode) -> Self
 pub fn Link::add_visual(Self, Visual) -> Self
 pub fn Link::equal(Self, Self) -> Bool
 pub fn Link::new(String) -> Self
-pub fn Link::rebase_to_mate(Self, MateConnector) -> Self
+pub fn Link::rebase_to_mate(Self, @common.MateConnector) -> Self
 pub fn Link::to_repr(Self) -> @debug.Repr
 pub fn Link::with_inertial(Self, Inertial) -> Self
 
@@ -323,17 +325,6 @@ pub fn Mass::to_grams(Self) -> Double
 pub fn Mass::to_kg(Self) -> Double
 pub impl Add for Mass
 pub impl Sub for Mass
-
-#derive(Eq, @debug.Debug)
-pub(all) struct MateConnector {
-  name : String
-  origin : Origin
-  axis : (Double, Double, Double)
-}
-pub fn MateConnector::equal(Self, Self) -> Bool
-pub fn MateConnector::from_mm_deg(String, x? : Double, y? : Double, z? : Double, rx_deg? : Double, ry_deg? : Double, rz_deg? : Double, axis? : (Double, Double, Double)) -> Self
-pub fn MateConnector::new(String, origin? : Origin, axis? : (Double, Double, Double)) -> Self
-pub fn MateConnector::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
 pub(all) struct Material {
@@ -548,6 +539,8 @@ pub fn Visual::with_name(Self, String) -> Self
 pub fn Visual::with_origin(Self, Origin) -> Self
 
 // Type aliases
+pub using @common {type MateConnector}
+
 pub type Vec3 = (Double, Double, Double)
 
 // Traits

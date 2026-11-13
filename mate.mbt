@@ -1,46 +1,27 @@
 ///|
-/// A named attachment frame on a component. Mate connectors are the CAD-side
-/// ports that let parameterized parts snap together without hand-computed
-/// coordinates.
-#derive(Debug, Eq)
-pub(all) struct MateConnector {
-  name : String
-  origin : Origin
-  axis : Vec3
-}
+/// A named attachment frame on a component.
+///
+/// The canonical definition lives in `gmlewis/step/components/common`; this
+/// alias keeps the URDF-facing name without defining a second struct. The
+/// shared connector stores millimetres and degrees internally and provides
+/// `from_m_rad` / `to_m_rad` for the URDF XML boundary.
+pub type MateConnector = @step_common.MateConnector
 
 ///|
-pub fn MateConnector::new(
-  name : String,
-  origin~ : Origin = Origin::identity(),
-  axis~ : Vec3 = (0.0, 0.0, 1.0),
-) -> MateConnector {
-  { name, origin, axis, }
-}
-
-///|
-/// Builds a mate from millimeter/degree inputs, normalizing its axis.
-pub fn MateConnector::from_mm_deg(
-  name : String,
-  x~ : Double = 0.0,
-  y~ : Double = 0.0,
-  z~ : Double = 0.0,
-  rx_deg~ : Double = 0.0,
-  ry_deg~ : Double = 0.0,
-  rz_deg~ : Double = 0.0,
-  axis~ : Vec3 = (0.0, 0.0, 1.0),
-) -> MateConnector {
-  {
-    name,
-    origin: Origin::from_mm_deg(x~, y~, z~, rx_deg~, ry_deg~, rz_deg~),
-    axis: v3_norm(axis),
-  }
+/// origin_of_mate converts a shared connector frame to the URDF metre/radian
+/// `Origin`.
+fn origin_of_mate(mate : @step_common.MateConnector) -> Origin {
+  let (xyz, rpy) = mate.to_m_rad()
+  Origin::new(xyz~, rpy~)
 }
 
 ///|
 /// Snaps a child mate onto a parent mate. Returns the joint origin (the
 /// child-link pose at `q = 0`) and the joint axis expressed in the child
 /// frame.
+///
+/// This is a metre/radian wrapper around the shared `snap_connectors`; the
+/// offset is converted to millimetres and the result back to a URDF `Origin`.
 pub fn snap_mates(
   parent_mate : MateConnector,
   child_mate : MateConnector,
@@ -48,16 +29,15 @@ pub fn snap_mates(
   angle_rad~ : Double = 0.0,
   flip_axis~ : Bool = false,
 ) -> (Origin, Vec3) {
-  let t_parent = Transform::from_origin(parent_mate.origin)
-  let t_child = Transform::from_origin(child_mate.origin)
-  let u = v3_norm(parent_mate.axis)
-  let t_offset = {
-    rot: rotation_matrix_axis_angle(u, angle_rad),
-    trans: v3_scale(u, offset),
-  }
-  let origin = t_parent.compose(t_offset).compose(t_child.inverse()).to_origin()
-  let dir = if flip_axis { (-u.0, -u.1, -u.2) } else { u }
-  (origin, t_child.rot.apply(dir))
+  let (placement, axis) = @step_common.snap_connectors(
+    parent_mate,
+    child_mate,
+    offset_mm=offset * 1000.0,
+    twist_rad=angle_rad,
+    flip_axis~,
+  )
+  let (xyz, rpy) = @step_common.MateConnector::new("snap", placement~).to_m_rad()
+  (Origin::new(xyz~, rpy~), axis)
 }
 
 ///|
@@ -75,12 +55,50 @@ pub fn Joint::from_mates(
   limit~ : JointLimit? = None,
   dynamics~ : JointDynamics? = None,
 ) -> Joint {
+  let pair = @step_common.MatePair::new(
+    parent=parent_mate.name,
+    child=child_mate.name,
+    offset_mm=offset * 1000.0,
+    twist_deg=angle_rad * 180.0 / @math.PI,
+    flip_axis~,
+  )
+  Joint::from_pair(
+    name,
+    joint_type,
+    parent_link~,
+    parent_mate~,
+    child_link~,
+    child_mate~,
+    pair~,
+    limit~,
+    dynamics~,
+  )
+}
+
+///|
+/// Builds a joint from a shared mate pair.
+///
+/// The pair owns the parent/child connector names, offset, twist, and flip;
+/// kinematic data stays in the joint arguments. Callers that already use
+/// `@step_common.MatePair` can pass it directly instead of restating its
+/// geometric fields.
+pub fn Joint::from_pair(
+  name : String,
+  joint_type : JointType,
+  parent_link~ : String,
+  parent_mate~ : MateConnector,
+  child_link~ : String,
+  child_mate~ : MateConnector,
+  pair~ : @step_common.MatePair,
+  limit~ : JointLimit? = None,
+  dynamics~ : JointDynamics? = None,
+) -> Joint {
   let (origin, axis) = snap_mates(
     parent_mate,
     child_mate,
-    offset~,
-    angle_rad~,
-    flip_axis~,
+    offset=pair.offset_mm / 1000.0,
+    angle_rad=pair.twist_deg * @math.PI / 180.0,
+    flip_axis=pair.flip_axis,
   )
   let joint = Joint::new(
     name,
@@ -111,7 +129,7 @@ fn rebase_origin(inv : Transform, origin : Origin) -> Origin {
 /// modeled around its own center usable as a URDF child link, whose pivot is
 /// always at the link origin.
 pub fn Link::rebase_to_mate(self : Link, mate : MateConnector) -> Link {
-  let inv = Transform::from_origin(mate.origin).inverse()
+  let inv = Transform::from_origin(origin_of_mate(mate)).inverse()
   let visuals : Array[Visual] = []
   for visual in self.visuals {
     visuals.push({ ..visual, origin: rebase_origin(inv, visual.origin), })

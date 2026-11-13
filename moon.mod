@@ -1,11 +1,12 @@
 name = "gmlewis/urdf"
 
-version = "0.1.0"
+version = "0.2.0"
 
 import {
+  "gmlewis/fonts@0.19.20",
+  "gmlewis/step@0.2.0",
   "moonbitlang/async@0.22.7",
   "moonbitlang/x@0.5.7",
-  "gmlewis/fonts@0.19.20",
 }
 
 readme = "README.md"

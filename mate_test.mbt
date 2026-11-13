@@ -17,10 +17,19 @@ fn empty_robot() -> @urdf.Robot {
 }
 
 ///|
-test "mate connector normalizes its axis" {
-  let m = @urdf.MateConnector::from_mm_deg("m", x=100.0, axis=(0.0, 0.0, 5.0))
-  assert_true(mate_near(m.origin.xyz.0, 0.1))
+test "mate connector stores millimetres and normalizes its axis" {
+  // The URDF boundary is metres/radians; the shared connector stores mm/deg.
+  let m = @urdf.MateConnector::from_m_rad(
+    "m",
+    (0.1, 0.0, 0.0),
+    (0.0, 0.0, 0.0),
+    axis=(0.0, 0.0, 5.0),
+  )
+  assert_true(mate_near(m.placement.trans.0, 100.0))
   assert_true(mate_near_vec(m.axis, (0.0, 0.0, 1.0)))
+  let (xyz, rpy) = m.to_m_rad()
+  assert_true(mate_near_vec(xyz, (0.1, 0.0, 0.0)))
+  assert_true(mate_near_vec(rpy, (0.0, 0.0, 0.0)))
 }
 
 ///|
@@ -61,6 +70,44 @@ test "snap mates supports twist and axis flip" {
     origin.rpy.2,
   )
   assert_true(mate_near_vec(rotated.apply((1.0, 0.0, 0.0)), (0.0, 1.0, 0.0)))
+}
+
+///|
+test "joint from a shared mate pair matches from_mates" {
+  let parent = @urdf.MateConnector::new("p")
+  let child = @urdf.MateConnector::new("c")
+  let pair = @step_common.MatePair::new(
+    parent="p",
+    child="c",
+    offset_mm=100.0,
+    twist_deg=90.0,
+    flip_axis=true,
+  )
+  let limit = @urdf.JointLimit::new(effort=1.0, velocity=1.0)
+  let from_pair = @urdf.Joint::from_pair(
+    "j",
+    @urdf.JointType::Revolute,
+    parent_link="a",
+    parent_mate=parent,
+    child_link="b",
+    child_mate=child,
+    pair~,
+    limit=Some(limit),
+  )
+  let from_mates = @urdf.Joint::from_mates(
+    "j",
+    @urdf.JointType::Revolute,
+    parent_link="a",
+    parent_mate=parent,
+    child_link="b",
+    child_mate=child,
+    offset=0.1,
+    angle_rad=@math.PI / 2.0,
+    flip_axis=true,
+    limit=Some(limit),
+  )
+  assert_true(mate_near_vec(from_pair.origin.xyz, from_mates.origin.xyz))
+  assert_true(mate_near_vec(from_pair.axis, from_mates.axis))
 }
 
 ///|
