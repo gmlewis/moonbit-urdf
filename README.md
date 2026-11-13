@@ -1,13 +1,15 @@
 # gmlewis/urdf (MoonBit)
 
-A standalone, dependency-clean URDF (Unified Robot Description Format) library
-for MoonBit: a typed robot model, a fluent builder DSL, analytical and
-triangle-mesh inertia math, mate-connector snapping, forward kinematics, a
-lossless XML parser, deterministic serialization, validation diagnostics, and
-multi-file ROS package export.
+A URDF (Unified Robot Description Format) library for MoonBit: a typed robot
+model, a fluent builder DSL, analytical and triangle-mesh inertia math,
+mate-connector snapping, forward kinematics, a lossless XML parser,
+deterministic serialization, validation diagnostics, and multi-file ROS package
+export.
 
-`gmlewis/urdf` has **zero dependency on `gmlewis/step`**. It is the robotics
-pillar that the upcoming `gmlewis/cad` package imports alongside `gmlewis/step`.
+`gmlewis/urdf` reuses the shared mate-connector types from
+`gmlewis/step/components/common`, so a connector authored on a component snaps
+the same way in the CAD and robotics pipelines. It is the robotics pillar that
+the upcoming `gmlewis/cad` package imports alongside `gmlewis/step`.
 
 ## Quick start
 
@@ -84,7 +86,8 @@ Unknown elements such as `<gazebo>` and `<ros2_control>` are preserved in
 `gmlewis/cad` composes parameterized mechanical components and emits STEP,
 glTF, and URDF from one model. `gmlewis/step` owns B-Rep/STEP, `gmlewis/urdf`
 owns links, joints, inertial properties, mate snapping, forward kinematics, and
-ROS package bundles. Neither depends on the other; `gmlewis/cad` imports both.
+ROS package bundles. Mates live in `gmlewis/step/components/common`, which
+`gmlewis/urdf` builds on; `gmlewis/cad` imports both.
 
 ## Examples
 

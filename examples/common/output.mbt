@@ -3,6 +3,7 @@
 pub struct OutputPaths {
   urdf : String?
   bundle_dir : String?
+  step : String?
   unchecked : Bool
   nostdout : Bool
 }
@@ -16,6 +17,12 @@ pub fn with_output_args(
   out_help~ : String = "Write URDF output to a file (default: stdout)",
 ) -> Map[String, @cli.Arg] {
   spec.set("out", @cli.opt_string(short='o', help=out_help))
+  spec.set(
+    "step",
+    @cli.opt_string(
+      help="Write a STEP preview of the robot's visual primitives to this path",
+    ),
+  )
   if bundle {
     spec.set(
       "bundle",
@@ -36,6 +43,7 @@ pub fn output_paths(args : @cli.Args) -> OutputPaths {
   {
     urdf: args.string_opt("out"),
     bundle_dir: args.string_opt("bundle"),
+    step: args.string_opt("step"),
     unchecked: args.flag("unchecked"),
     nostdout: args.flag("nostdout"),
   }
@@ -62,8 +70,12 @@ pub async fn write_output(
   match paths.urdf {
     Some(path) => robot.write_urdf(Some(path), checked=!paths.unchecked)
     None =>
-      if !paths.nostdout && paths.bundle_dir is None {
+      if !paths.nostdout && paths.bundle_dir is None && paths.step is None {
         robot.write_urdf(None, checked=!paths.unchecked)
       }
+  }
+  match paths.step {
+    Some(path) => write_step_preview(robot, path)
+    None => ()
   }
 }

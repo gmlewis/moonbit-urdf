@@ -1,14 +1,15 @@
 ///|
 /// # `gmlewis/urdf`
 ///
-/// A standalone, dependency-clean URDF (Unified Robot Description Format)
-/// library for MoonBit: a typed robot model, a fluent builder DSL, analytical
-/// and triangle-mesh inertia math, mate-connector snapping, forward
-/// kinematics, a lossless XML parser, deterministic serialization, validation
-/// diagnostics, and multi-file ROS 2 package export.
+/// A URDF (Unified Robot Description Format) library for MoonBit: a typed
+/// robot model, a fluent builder DSL, analytical and triangle-mesh inertia
+/// math, mate-connector snapping, forward kinematics, a lossless XML parser,
+/// deterministic serialization, validation diagnostics, and multi-file
+/// ROS 2 package export.
 ///
-/// `gmlewis/urdf` has **zero dependency on `gmlewis/step`**. It is the
-/// robotics pillar that `gmlewis/cad` imports alongside `gmlewis/step`.
+/// `gmlewis/urdf` reuses the shared mate-connector types from
+/// `gmlewis/step/components/common`. It is the robotics pillar that
+/// `gmlewis/cad` imports alongside `gmlewis/step`.
 ///
 /// ## Robot model
 ///

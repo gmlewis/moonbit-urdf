@@ -16,6 +16,9 @@ Wrapper options:
   --validate             Run scripts/validate_urdf.py on the generated URDF.
                          Implies an output file (a temporary one if -o is absent).
   --unchecked            Skip validation diagnostics in the example.
+  --view[=<path>]        Write a STEP preview of the robot's visual primitives to
+                         /tmp/<example>.step (or <path>) and open it in
+                         SolidCraft. With --step, opens that path instead.
   --                     Optional separator (ignored).
 
 Every other option is forwarded to the example (for example --sx, --radius,
@@ -27,6 +30,7 @@ Examples:
   ./run-example.sh 02 --length1 200 -o pendulum.urdf --validate
   ./run-example.sh 05 -o galileo.urdf
   ./run-example.sh 05 --bundle /tmp/galileo_pkg
+  ./run-example.sh 01 --view
   python3 scripts/validate_urdf.py --check-meshes /tmp/galileo_pkg/urdf/galileo_quadruped.urdf
 EOF
 }
@@ -89,6 +93,10 @@ EXAMPLE_NAME="$(basename "$EXAMPLE_PATH_REL")"
 
 FORWARD_ARGS=()
 OUT_PATH=""
+STEP_PATH=""
+VIEW_REQUESTED=0
+VIEW_PATH_ARG=""
+VIEW_STEP=""
 VALIDATE=0
 TMP_DIR=""
 i=0
@@ -98,6 +106,25 @@ while (( i < ${#ARGS[@]} )); do
   case "$arg" in
     --validate)
       VALIDATE=1
+      ;;
+    --view)
+      VIEW_REQUESTED=1
+      ;;
+    --view=*)
+      VIEW_REQUESTED=1
+      VIEW_PATH_ARG="${arg#*=}"
+      ;;
+    --step)
+      FORWARD_ARGS+=("$arg")
+      if (( i + 1 < ${#ARGS[@]} )); then
+        STEP_PATH="${ARGS[$((i + 1))]}"
+        FORWARD_ARGS+=("$STEP_PATH")
+        i=$((i + 1))
+      fi
+      ;;
+    --step=*)
+      STEP_PATH="${arg#*=}"
+      FORWARD_ARGS+=("$arg")
       ;;
     -o | --out)
       FORWARD_ARGS+=("$arg")
@@ -125,9 +152,52 @@ if (( VALIDATE )) && [[ -z "$OUT_PATH" ]]; then
   FORWARD_ARGS+=(-o "$OUT_PATH")
 fi
 
+open_in_solidcraft() {
+  local step_path="$1"
+  if [[ ! -s "$step_path" ]]; then
+    echo "Error: no STEP preview was written at $step_path." >&2
+    exit 1
+  fi
+  if ! command -v open >/dev/null 2>&1; then
+    echo "Error: the macOS 'open' command is unavailable." >&2
+    exit 1
+  fi
+  echo "Opening $step_path in SolidCraft" >&2
+  if ! open -a SolidCraft "$step_path"; then
+    echo "Error: could not open SolidCraft. Is the app installed?" >&2
+    echo "The STEP file is at: $step_path" >&2
+    exit 1
+  fi
+}
+
+if (( VIEW_REQUESTED )); then
+  if [[ -n "$VIEW_PATH_ARG" ]] && [[ -n "$STEP_PATH" ]]; then
+    echo "Error: use either --view=<path> or --step <path>, not both." >&2
+    exit 1
+  fi
+  if [[ -n "$VIEW_PATH_ARG" ]]; then
+    VIEW_STEP="$VIEW_PATH_ARG"
+    FORWARD_ARGS+=(--step "$VIEW_STEP" --nostdout)
+  elif [[ -n "$STEP_PATH" ]]; then
+    VIEW_STEP="$STEP_PATH"
+  else
+    VIEW_STEP="/tmp/$EXAMPLE_NAME.step"
+    FORWARD_ARGS+=(--step "$VIEW_STEP" --nostdout)
+  fi
+  if [[ -z "$VIEW_STEP" || "$VIEW_STEP" == "-" ||
+    ! -d "$(dirname "$VIEW_STEP")" ]]; then
+    echo "Error: invalid view output path: $VIEW_STEP" >&2
+    exit 1
+  fi
+fi
+
 MOONBIT_URDF_ROOT="$ROOT_DIR" \
   moon run --quiet --target native "$ROOT_DIR/$EXAMPLE_PATH_REL" -- "${FORWARD_ARGS[@]}"
 
 if (( VALIDATE )); then
   python3 "$ROOT_DIR/scripts/validate_urdf.py" "$OUT_PATH"
+fi
+
+if (( VIEW_REQUESTED )); then
+  open_in_solidcraft "$VIEW_STEP"
 fi
