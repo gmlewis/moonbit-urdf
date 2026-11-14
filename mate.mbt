@@ -16,12 +16,36 @@ fn origin_of_mate(mate : @step_common.MateConnector) -> Origin {
 }
 
 ///|
+/// Applies the shared mate convention to a snapped joint axis.
+///
+/// For interfaces whose assembled axes are anti-parallel by convention
+/// (shaft-into-bore and plane-on-plane), `MatePair::resolve` negates the axis
+/// when it points along the child connector's own axis. Mirroring that rule
+/// here keeps a URDF joint axis pointing the same way as the CAD-side mate.
+fn align_mate_axis(
+  parent_mate : MateConnector,
+  child_mate : MateConnector,
+  raw : Vec3,
+) -> Vec3 {
+  if @step_common.interface_anti_parallel(parent_mate.kind, child_mate.kind) {
+    let child_axis = @step_common.normalize_dir(child_mate.axis)
+    if @step_common.dir_dot(raw, child_axis) > 0.0 {
+      return (-raw.0, -raw.1, -raw.2)
+    }
+  }
+  raw
+}
+
+///|
 /// Snaps a child mate onto a parent mate. Returns the joint origin (the
 /// child-link pose at `q = 0`) and the joint axis expressed in the child
 /// frame.
 ///
 /// This is a metre/radian wrapper around the shared `snap_connectors`; the
 /// offset is converted to millimetres and the result back to a URDF `Origin`.
+/// The returned axis follows the same anti-parallel insertion convention as
+/// `@step_common.MatePair::resolve`, so a joint built from component
+/// connectors uses the same axis direction as the CAD mate.
 pub fn snap_mates(
   parent_mate : MateConnector,
   child_mate : MateConnector,
@@ -29,13 +53,14 @@ pub fn snap_mates(
   angle_rad~ : Double = 0.0,
   flip_axis~ : Bool = false,
 ) -> (Origin, Vec3) {
-  let (placement, axis) = @step_common.snap_connectors(
+  let (placement, raw_axis) = @step_common.snap_connectors(
     parent_mate,
     child_mate,
     offset_mm=offset * 1000.0,
     twist_rad=angle_rad,
     flip_axis~,
   )
+  let axis = align_mate_axis(parent_mate, child_mate, raw_axis)
   let (xyz, rpy) = @step_common.MateConnector::new("snap", placement~).to_m_rad()
   (Origin::new(xyz~, rpy~), axis)
 }

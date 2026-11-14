@@ -152,7 +152,7 @@ fn xp_skip_pi(p : XmlParser) -> Unit raise UrdfParseError {
 }
 
 ///|
-fn xp_skip_comment(p : XmlParser) -> String raise UrdfParseError {
+fn xp_read_comment(p : XmlParser) -> String raise UrdfParseError {
   // Consume "<!--".
   for _ in 0..<4 {
     xp_advance(p)
@@ -175,11 +175,31 @@ fn xp_skip_comment(p : XmlParser) -> String raise UrdfParseError {
 }
 
 ///|
+fn xp_skip_comment(p : XmlParser) -> Unit raise UrdfParseError {
+  // Consume "<!--".
+  for _ in 0..<4 {
+    xp_advance(p)
+  }
+  while true {
+    if p.pos[0] >= xp_len(p) {
+      xp_error(p, "unterminated comment")
+    }
+    if xp_starts(p, "-->") {
+      xp_advance(p)
+      xp_advance(p)
+      xp_advance(p)
+      return
+    }
+    xp_advance(p)
+  }
+}
+
+///|
 fn xp_skip_misc(p : XmlParser) -> Unit raise UrdfParseError {
   while true {
     xp_skip_ws(p)
     if xp_starts(p, "<!--") {
-      let _ = xp_skip_comment(p)
+      xp_skip_comment(p)
       continue
     }
     if xp_starts(p, "<?") {
@@ -309,7 +329,7 @@ fn xp_parse_element(p : XmlParser) -> XNode raise UrdfParseError {
       break
     }
     if xp_starts(p, "<!--") {
-      let _ = xp_skip_comment(p)
+      xp_skip_comment(p)
       continue
     }
     if xp_starts(p, "<?") {
@@ -360,7 +380,7 @@ fn parse_located_document(
   }
   let mut documentation : String? = None
   if xp_starts(p, "<!--") {
-    documentation = Some(xp_skip_comment(p).trim().to_owned())
+    documentation = Some(xp_read_comment(p).trim().to_owned())
   }
   xp_skip_misc(p)
   if !xp_starts(p, "<") {

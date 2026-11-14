@@ -1,12 +1,10 @@
 name = "gmlewis/urdf"
 
-version = "0.2.0"
+version = "0.2.1"
 
 import {
-  "gmlewis/fonts@0.19.20",
-  "gmlewis/step@0.2.0",
-  "moonbitlang/async@0.22.7",
-  "moonbitlang/x@0.5.7",
+  "gmlewis/step@0.2.1",
+  "moonbitlang/async@0.22.9",
 }
 
 readme = "README.md"
@@ -17,6 +15,6 @@ license = "Apache-2.0"
 
 keywords = [ "cad", "3d", "ros", "urdf" ]
 
-description = "Simple URDF support for MoonBit"
+description = "URDF modeling, kinematics, inertia, parsing, and ROS bundle export for MoonBit"
 
 preferred_target = "native"

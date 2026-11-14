@@ -62,6 +62,7 @@ pub(all) struct Actuator {
   mechanical_reduction : Double?
 }
 pub fn Actuator::equal(Self, Self) -> Bool
+pub fn Actuator::not_equal(Self, Self) -> Bool
 pub fn Actuator::to_repr(Self) -> @debug.Repr
 
 pub struct Angle {
@@ -86,6 +87,7 @@ pub(all) struct Collision {
 }
 pub fn Collision::equal(Self, Self) -> Bool
 pub fn Collision::new(Geometry, name? : String?, origin? : Origin) -> Self
+pub fn Collision::not_equal(Self, Self) -> Bool
 pub fn Collision::to_repr(Self) -> @debug.Repr
 pub fn Collision::with_name(Self, String) -> Self
 pub fn Collision::with_origin(Self, Origin) -> Self
@@ -126,6 +128,7 @@ pub(all) enum Diagnostic {
 }
 pub fn Diagnostic::equal(Self, Self) -> Bool
 pub fn Diagnostic::message(Self) -> String
+pub fn Diagnostic::not_equal(Self, Self) -> Bool
 pub fn Diagnostic::severity(Self) -> Severity
 pub fn Diagnostic::to_repr(Self) -> @debug.Repr
 
@@ -143,6 +146,7 @@ pub fn Geometry::cylinder_mm(Double, Double) -> Self
 pub fn Geometry::equal(Self, Self) -> Bool
 pub fn Geometry::mesh(String, scale? : (Double, Double, Double)?) -> Self
 pub fn Geometry::mesh_mm(String) -> Self
+pub fn Geometry::not_equal(Self, Self) -> Bool
 pub fn Geometry::sphere(Double) -> Self
 pub fn Geometry::sphere_mm(Double) -> Self
 pub fn Geometry::to_repr(Self) -> @debug.Repr
@@ -161,6 +165,7 @@ pub fn Inertia::diagonal(Double, Double, Double) -> Self
 pub fn Inertia::equal(Self, Self) -> Bool
 pub fn Inertia::from_matrix(Matrix3x3) -> Self
 pub fn Inertia::new(ixx~ : Double, iyy~ : Double, izz~ : Double, ixy? : Double, ixz? : Double, iyz? : Double) -> Self
+pub fn Inertia::not_equal(Self, Self) -> Bool
 pub fn Inertia::rotate(Self, Matrix3x3) -> Self
 pub fn Inertia::scale(Self, Double) -> Self
 pub fn Inertia::shift_by_offset(Self, Double, (Double, Double, Double)) -> Self
@@ -188,6 +193,7 @@ pub fn Inertial::from_triangles_mm(Array[((Double, Double, Double), (Double, Dou
 pub fn Inertial::from_tube(Double, Double, Double, mass~ : Double, origin? : Origin) -> Self
 pub fn Inertial::from_tube_density(Double, Double, Double, density~ : Density, origin? : Origin) -> Self
 pub fn Inertial::new(Double, Inertia, origin? : Origin) -> Self
+pub fn Inertial::not_equal(Self, Self) -> Bool
 pub fn Inertial::to_repr(Self) -> @debug.Repr
 pub fn Inertial::transform_by(Self, Transform) -> Self
 pub fn Inertial::with_origin(Self, Origin) -> Self
@@ -215,6 +221,7 @@ pub fn Joint::floating(String, parent~ : String, child~ : String, origin? : Orig
 pub fn Joint::from_mates(String, JointType, parent_link~ : String, parent_mate~ : @common.MateConnector, child_link~ : String, child_mate~ : @common.MateConnector, offset? : Double, angle_rad? : Double, flip_axis? : Bool, limit? : JointLimit?, dynamics? : JointDynamics?) -> Self
 pub fn Joint::from_pair(String, JointType, parent_link~ : String, parent_mate~ : @common.MateConnector, child_link~ : String, child_mate~ : @common.MateConnector, pair~ : @common.MatePair, limit? : JointLimit?, dynamics? : JointDynamics?) -> Self
 pub fn Joint::new(String, JointType, parent~ : String, child~ : String, origin? : Origin, axis? : (Double, Double, Double)) -> Self
+pub fn Joint::not_equal(Self, Self) -> Bool
 pub fn Joint::planar(String, parent~ : String, child~ : String, origin? : Origin, axis? : (Double, Double, Double)) -> Self
 pub fn Joint::prismatic(String, parent~ : String, child~ : String, limit~ : JointLimit, origin? : Origin, axis? : (Double, Double, Double)) -> Self
 pub fn Joint::revolute(String, parent~ : String, child~ : String, limit~ : JointLimit, origin? : Origin, axis? : (Double, Double, Double)) -> Self
@@ -233,6 +240,7 @@ pub(all) struct JointCalibration {
   falling : Double?
 }
 pub fn JointCalibration::equal(Self, Self) -> Bool
+pub fn JointCalibration::not_equal(Self, Self) -> Bool
 pub fn JointCalibration::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
@@ -242,6 +250,7 @@ pub(all) struct JointDynamics {
 }
 pub fn JointDynamics::equal(Self, Self) -> Bool
 pub fn JointDynamics::new(damping? : Double, friction? : Double) -> Self
+pub fn JointDynamics::not_equal(Self, Self) -> Bool
 pub fn JointDynamics::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
@@ -253,6 +262,7 @@ pub(all) struct JointLimit {
 }
 pub fn JointLimit::equal(Self, Self) -> Bool
 pub fn JointLimit::new(effort~ : Double, velocity~ : Double, lower? : Double?, upper? : Double?) -> Self
+pub fn JointLimit::not_equal(Self, Self) -> Bool
 pub fn JointLimit::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
@@ -263,6 +273,7 @@ pub(all) struct JointMimic {
 }
 pub fn JointMimic::equal(Self, Self) -> Bool
 pub fn JointMimic::new(String, multiplier? : Double, offset? : Double) -> Self
+pub fn JointMimic::not_equal(Self, Self) -> Bool
 pub fn JointMimic::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
@@ -276,6 +287,7 @@ pub(all) enum JointType {
 }
 pub fn JointType::equal(Self, Self) -> Bool
 pub fn JointType::from_urdf_str(String) -> Self?
+pub fn JointType::not_equal(Self, Self) -> Bool
 pub fn JointType::to_repr(Self) -> @debug.Repr
 pub fn JointType::to_urdf_str(Self) -> String
 
@@ -309,6 +321,7 @@ pub fn Link::add_extra(Self, RawXmlNode) -> Self
 pub fn Link::add_visual(Self, Visual) -> Self
 pub fn Link::equal(Self, Self) -> Bool
 pub fn Link::new(String) -> Self
+pub fn Link::not_equal(Self, Self) -> Bool
 pub fn Link::rebase_to_mate(Self, @common.MateConnector) -> Self
 pub fn Link::to_repr(Self) -> @debug.Repr
 pub fn Link::with_inertial(Self, Inertial) -> Self
@@ -335,6 +348,7 @@ pub(all) struct Material {
 pub fn Material::color_only(String, Rgba) -> Self
 pub fn Material::equal(Self, Self) -> Bool
 pub fn Material::new(String, color? : Rgba?, texture? : String?) -> Self
+pub fn Material::not_equal(Self, Self) -> Bool
 pub fn Material::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
@@ -353,6 +367,7 @@ pub fn Matrix3x3::apply(Self, (Double, Double, Double)) -> (Double, Double, Doub
 pub fn Matrix3x3::equal(Self, Self) -> Bool
 pub fn Matrix3x3::identity() -> Self
 pub fn Matrix3x3::mul(Self, Self) -> Self
+pub fn Matrix3x3::not_equal(Self, Self) -> Bool
 pub fn Matrix3x3::to_repr(Self) -> @debug.Repr
 pub fn Matrix3x3::transpose(Self) -> Self
 
@@ -371,6 +386,7 @@ pub fn Origin::from_mm_deg(x? : Double, y? : Double, z? : Double, rx_deg? : Doub
 pub fn Origin::identity() -> Self
 pub fn Origin::is_identity(Self) -> Bool
 pub fn Origin::new(xyz? : (Double, Double, Double), rpy? : (Double, Double, Double)) -> Self
+pub fn Origin::not_equal(Self, Self) -> Bool
 pub fn Origin::to_repr(Self) -> @debug.Repr
 
 pub(all) enum ParseUrdfResult {
@@ -386,6 +402,7 @@ pub(all) struct RawXmlNode {
   children : Array[RawXmlNode]
 }
 pub fn RawXmlNode::equal(Self, Self) -> Bool
+pub fn RawXmlNode::not_equal(Self, Self) -> Bool
 pub fn RawXmlNode::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
@@ -403,6 +420,7 @@ pub fn Rgba::green() -> Self
 pub fn Rgba::grey() -> Self
 pub fn Rgba::magenta() -> Self
 pub fn Rgba::new(Double, Double, Double, a? : Double) -> Self
+pub fn Rgba::not_equal(Self, Self) -> Bool
 pub fn Rgba::orange() -> Self
 pub fn Rgba::purple() -> Self
 pub fn Rgba::red() -> Self
@@ -437,6 +455,7 @@ pub fn Robot::get_link(Self, String) -> Link?
 pub fn Robot::has_errors(Self) -> Bool
 pub fn Robot::link_world_origins(Self, joint_positions? : Map[String, Double]) -> Map[String, Origin]
 pub fn Robot::new(String, version? : String?, documentation? : String) -> Self
+pub fn Robot::not_equal(Self, Self) -> Bool
 pub fn Robot::root_link(Self) -> String?
 pub fn Robot::to_repr(Self) -> @debug.Repr
 pub fn Robot::to_string(Self) -> String
@@ -455,6 +474,7 @@ pub(all) struct SafetyController {
   k_velocity : Double
 }
 pub fn SafetyController::equal(Self, Self) -> Bool
+pub fn SafetyController::not_equal(Self, Self) -> Bool
 pub fn SafetyController::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
@@ -466,6 +486,7 @@ pub(all) enum Severity {
 pub fn Severity::all() -> Array[Self]
 pub fn Severity::equal(Self, Self) -> Bool
 pub fn Severity::is_error(Self) -> Bool
+pub fn Severity::not_equal(Self, Self) -> Bool
 pub fn Severity::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
@@ -480,6 +501,7 @@ pub fn Transform::equal(Self, Self) -> Bool
 pub fn Transform::from_origin(Origin) -> Self
 pub fn Transform::identity() -> Self
 pub fn Transform::inverse(Self) -> Self
+pub fn Transform::not_equal(Self, Self) -> Bool
 pub fn Transform::to_origin(Self) -> Origin
 pub fn Transform::to_repr(Self) -> @debug.Repr
 
@@ -491,6 +513,7 @@ pub(all) struct Transmission {
   actuators : Array[Actuator]
 }
 pub fn Transmission::equal(Self, Self) -> Bool
+pub fn Transmission::not_equal(Self, Self) -> Bool
 pub fn Transmission::simple(String, String, String, reduction? : Double, hardware_interface? : String) -> Self
 pub fn Transmission::to_repr(Self) -> @debug.Repr
 
@@ -500,6 +523,7 @@ pub(all) struct TransmissionJoint {
   hardware_interfaces : Array[String]
 }
 pub fn TransmissionJoint::equal(Self, Self) -> Bool
+pub fn TransmissionJoint::not_equal(Self, Self) -> Bool
 pub fn TransmissionJoint::to_repr(Self) -> @debug.Repr
 
 pub(all) struct UrdfBundle {
@@ -521,6 +545,7 @@ pub(all) struct UrdfParseErrorInfo {
   snippet : String?
 }
 pub fn UrdfParseErrorInfo::equal(Self, Self) -> Bool
+pub fn UrdfParseErrorInfo::not_equal(Self, Self) -> Bool
 pub fn UrdfParseErrorInfo::to_repr(Self) -> @debug.Repr
 
 #derive(Eq, @debug.Debug)
@@ -532,6 +557,7 @@ pub(all) struct Visual {
 }
 pub fn Visual::equal(Self, Self) -> Bool
 pub fn Visual::new(Geometry, name? : String?, origin? : Origin, material? : Material?) -> Self
+pub fn Visual::not_equal(Self, Self) -> Bool
 pub fn Visual::to_repr(Self) -> @debug.Repr
 pub fn Visual::with_color(Self, String, Rgba) -> Self
 pub fn Visual::with_material(Self, Material) -> Self

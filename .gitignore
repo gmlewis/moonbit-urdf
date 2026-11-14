@@ -9,3 +9,5 @@ __pycache__
 moon.work
 *.blend*
 /*.md
+# Keep the declared readme in the published mooncake archive.
+!README.md

@@ -515,21 +515,6 @@ pub async fn Args::translate_xyz(
     }
   }
 
-  // Legacy form: three separately-collected values.
-  if raw.length() == 3 {
-    match
-      (
-        parse_double_opt(raw[0]),
-        parse_double_opt(raw[1]),
-        parse_double_opt(raw[2]),
-      ) {
-      (Some(x), Some(y), Some(z)) => return Some((x, y, z))
-      _ => {
-        eprintln("error: --translate/-t expects numeric values")
-        abort("")
-      }
-    }
-  }
   eprintln("error: --translate/-t expects exactly 3 numbers: <x> <y> <z>")
   abort("")
   None
@@ -538,7 +523,7 @@ pub async fn Args::translate_xyz(
 ///|
 // Add the common translation bundle options to an existing args map.
 //
-// This is intended to keep examples tiny:
+// This is intended to keep callers terse:
 //   let args_spec = @cli.with_translate({ "edge": ..., "out": ... })
 pub fn with_translate(
   args : Map[String, Arg],
@@ -582,16 +567,6 @@ fn shell_quote(s : String) -> String {
     "'" + s.replace(old="'", new="'\\''") + "'"
   } else {
     s
-  }
-}
-
-///|
-/// example_number reduces an example program name to the number used by
-/// `./run-example.sh`, e.g. "38-planetary-gearbox" -> "38".
-fn example_number(prog : String) -> String {
-  match String::find(prog, "-") {
-    Some(idx) if idx > 0 => substr(prog, 0, idx)
-    _ => prog
   }
 }
 
@@ -640,10 +615,9 @@ fn sorted_strings(xs : Array[String]) -> Array[String] {
 }
 
 ///|
-/// command_line returns the documented invocation for this run, e.g.
-/// `./run-example.sh 38 --numTeeth 12 -o gearbox.step`.
+/// command_line returns the documented invocation for this run.
 pub fn Args::command_line(self : Args) -> String {
-  let parts : Array[String] = ["./run-example.sh", example_number(self.prog)]
+  let parts : Array[String] = [self.prog]
   for a in self.argv {
     parts.push(shell_quote(a))
   }

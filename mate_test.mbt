@@ -73,6 +73,69 @@ test "snap mates supports twist and axis flip" {
 }
 
 ///|
+test "snap mates flips the axis for a shaft entering a bore" {
+  // The shared MatePair::resolve convention points a shaft/bore joint axis
+  // against the child connector's own axis.
+  let bore = @urdf.MateConnector::new(
+    "bore",
+    kind=@step_common.MateKind::CylindricalBore,
+    gender=@step_common.MateGender::Female,
+    diameter_mm=5.0,
+  )
+  let shaft = @urdf.MateConnector::new(
+    "shaft",
+    kind=@step_common.MateKind::CylindricalShaft,
+    gender=@step_common.MateGender::Male,
+    diameter_mm=5.0,
+  )
+  let (_, axis) = @urdf.snap_mates(bore, shaft)
+  assert_true(mate_near_vec(axis, (0.0, 0.0, -1.0)))
+  let (_, flipped) = @urdf.snap_mates(bore, shaft, flip_axis=true)
+  assert_true(mate_near_vec(flipped, (0.0, 0.0, -1.0)))
+}
+
+///|
+test "joint from mates follows the shaft/bore axis convention" {
+  let joint = @urdf.Joint::from_mates(
+    "drive",
+    @urdf.JointType::Revolute,
+    parent_link="housing",
+    parent_mate=@urdf.MateConnector::new(
+      "bore",
+      kind=@step_common.MateKind::CylindricalBore,
+      gender=@step_common.MateGender::Female,
+      diameter_mm=5.0,
+    ),
+    child_link="shaft",
+    child_mate=@urdf.MateConnector::new(
+      "shaft",
+      kind=@step_common.MateKind::CylindricalShaft,
+      gender=@step_common.MateGender::Male,
+      diameter_mm=5.0,
+    ),
+    limit=Some(@urdf.JointLimit::new(effort=1.0, velocity=1.0)),
+  )
+  assert_true(mate_near_vec(joint.axis, (0.0, 0.0, -1.0)))
+}
+
+///|
+test "snap mates keeps plane-face axes that already oppose" {
+  let top = @urdf.MateConnector::from_mm_deg(
+    "top",
+    z=30.0,
+    kind=@step_common.MateKind::PlaneFace,
+  )
+  let bottom = @urdf.MateConnector::new(
+    "bottom",
+    axis=(0.0, 0.0, -1.0),
+    kind=@step_common.MateKind::PlaneFace,
+  )
+  let (origin, axis) = @urdf.snap_mates(top, bottom)
+  assert_true(mate_near_vec(origin.xyz, (0.0, 0.0, 0.03)))
+  assert_true(mate_near_vec(axis, (0.0, 0.0, 1.0)))
+}
+
+///|
 test "joint from a shared mate pair matches from_mates" {
   let parent = @urdf.MateConnector::new("p")
   let child = @urdf.MateConnector::new("c")

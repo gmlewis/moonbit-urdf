@@ -14,12 +14,11 @@ find . -type d \( -name .mooncakes -o -name _build \) -not -path './.git/*' -exe
 
 # Root package setup
 echo "Setting up root package..."
+moon add --upgrade gmlewis/step || true
 moon add --upgrade moonbitlang/async || true
-moon add --upgrade moonbitlang/x || true
-moon add --upgrade gmlewis/fonts || true
 
 moon fmt || true
-moon info --target native || true
+moon info || true
 
 # Run tests
 echo "Running tests..."

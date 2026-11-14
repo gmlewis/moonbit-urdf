@@ -58,6 +58,10 @@ let poses = robot.forward_kinematics(
 )
 ```
 
+Joint axes follow the shared `MatePair::resolve` convention, including the
+anti-parallel insertion rule for shaft/bore and plane/plane interfaces, so a
+joint points the same way as the CAD-side mate.
+
 ### Inertia from CAD meshes
 
 ```moonbit
@@ -88,28 +92,6 @@ glTF, and URDF from one model. `gmlewis/step` owns B-Rep/STEP, `gmlewis/urdf`
 owns links, joints, inertial properties, mate snapping, forward kinematics, and
 ROS package bundles. Mates live in `gmlewis/step/components/common`, which
 `gmlewis/urdf` builds on; `gmlewis/cad` imports both.
-
-## Examples
-
-| Example | Description |
-| --- | --- |
-| `01-single-link-box` | Parameterized box: millimeter units, density, analytical inertia |
-| `02-two-link-pendulum` | Revolute pendulum assembled with mate connectors |
-| `03-planetary-gearbox-urdf` | Sun/ring/planets/carrier with mimic coupling |
-| `04-six-dof-arm` | Six-axis arm with `Inertial::combine`, safety controllers, transmissions |
-| `05-wheeled-quadruped` | Galileo-style quadruped: 17 links, 16 joints, full mesh bundle |
-| `06-assistive-scooter` | Rider-parameterized assistive scooter/wheelchair |
-
-Run any example (numbers resolve to the matching folder):
-
-```bash
-./run-example.sh 01 -o box.urdf
-./run-example.sh 02 --length1 200 -o pendulum.urdf --validate
-./run-example.sh 05 -o galileo.urdf
-./run-example.sh 05 --bundle /tmp/galileo_pkg
-python3 scripts/validate_urdf.py --check-meshes \
-  /tmp/galileo_pkg/urdf/galileo_quadruped.urdf
-```
 
 ## Validation
 
