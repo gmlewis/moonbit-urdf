@@ -109,3 +109,15 @@ write an invalid model.
 ## License
 
 Apache-2.0
+
+## Status
+
+The code has been updated to support compiler:
+
+```bash
+$ moon version --all
+moon 0.1.20261117 (eb64713 2026-11-17) ~/.moon/bin/moon
+moonc v0.10.21+06da1ed44 (2026-11-16) ~/.moon/bin/moonc
+moonrun 0.1.20261117 (eb64713 2026-11-17) ~/.moon/bin/moonrun
+
+```
