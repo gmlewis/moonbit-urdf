@@ -1,10 +1,10 @@
 name = "gmlewis/urdf"
 
-version = "0.2.7"
+version = "0.2.8"
 
 import {
   "gmlewis/step@0.2.7",
-  "moonbitlang/async@0.22.9",
+  "moonbitlang/async@0.22.10",
 }
 
 readme = "README.md"
