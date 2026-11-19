@@ -58,6 +58,15 @@ class ValidationTests(unittest.TestCase):
         self.assertIn("joints", checks)
         self.assertIn("topology", checks)
 
+    def test_loop_constraint_comment_is_ignored(self):
+        text = valid_urdf().replace(
+            "</robot>",
+            "  <!-- loop_constraint: pivot_d body1=arm anchor1=0.1 0 0 "
+            "body2=base anchor2=0.05 0 0 -->\n</robot>",
+        )
+        result = v.validate_text(text)
+        self.assertTrue(result.ok, [c.name for c in result.checks if not c.ok])
+
     def test_malformed_xml(self):
         result = v.validate_text("<robot name='r'><link></robot>")
         self.assertFalse(result.ok)

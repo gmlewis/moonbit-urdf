@@ -950,6 +950,7 @@ fn robot_from_node(
     links,
     joints,
     transmissions,
+    loop_constraints: [],
     extra,
   }
 }

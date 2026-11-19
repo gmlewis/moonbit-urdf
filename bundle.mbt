@@ -94,6 +94,15 @@ pub async fn UrdfBundle::write_to_dir(
   @fs.mkdir(urdf_dir, recursive=true, allow_exist=true)
   let urdf_path = urdf_dir + "/" + self.robot.name + ".urdf"
   self.robot.write_urdf_file(Some(urdf_path), checked~)
+  // MuJoCo MJCF alongside the URDF. The meshes live in <bundle>/meshes, and
+  // the MJCF lives in <bundle>/mjcf, hence the "../meshes" meshdir.
+  let mjcf_dir = out_dir + "/mjcf"
+  @fs.mkdir(mjcf_dir, recursive=true, allow_exist=true)
+  let mjcf_path = mjcf_dir + "/" + self.robot.name + ".xml"
+  write_text_file(
+    self.robot.to_mjcf_string(mesh_dir="../meshes"),
+    Some(mjcf_path),
+  )
   let package_path = out_dir + "/package.xml"
   write_text_file(self.package_xml(), Some(package_path))
   for mesh in self.meshes {

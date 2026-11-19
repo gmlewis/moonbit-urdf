@@ -278,8 +278,21 @@ pub fn Robot::new(
     links: [],
     joints: [],
     transmissions: [],
+    loop_constraints: [],
     extra: [],
   }
+}
+
+///|
+/// Adds a closed-chain constraint (ignored by URDF readers, emitted as a
+/// native `<equality><connect>` in MJCF).
+pub fn Robot::add_loop_constraint(
+  self : Robot,
+  constraint : LoopConstraint,
+) -> Robot {
+  let loop_constraints = self.loop_constraints.copy()
+  loop_constraints.push(constraint)
+  { ..self, loop_constraints, }
 }
 
 ///|

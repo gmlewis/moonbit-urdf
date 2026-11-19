@@ -333,6 +333,16 @@ pub fn Link::rebase_to_mate(Self, @common.MateConnector) -> Self
 pub fn Link::to_repr(Self) -> @debug.Repr
 pub fn Link::with_inertial(Self, Inertial) -> Self
 
+#derive(Eq, @debug.Debug)
+pub(all) struct LoopConstraint {
+  name : String
+  body1 : String
+  anchor1 : (Double, Double, Double)
+  body2 : String
+  anchor2 : (Double, Double, Double)
+}
+pub fn LoopConstraint::connect(name~ : String, body1~ : String, anchor1~ : (Double, Double, Double), body2~ : String, anchor2~ : (Double, Double, Double)) -> Self
+
 pub struct Mass {
   kilograms : Double
 }
@@ -445,6 +455,7 @@ pub(all) struct Robot {
   links : Array[Link]
   joints : Array[Joint]
   transmissions : Array[Transmission]
+  loop_constraints : Array[LoopConstraint]
   extra : Array[RawXmlNode]
 }
 pub fn Robot::add_extra(Self, RawXmlNode) -> Self
@@ -452,6 +463,7 @@ pub fn Robot::add_joint(Self, Joint) -> Self
 pub fn Robot::add_joints(Self, Array[Joint]) -> Self
 pub fn Robot::add_link(Self, Link) -> Self
 pub fn Robot::add_links(Self, Array[Link]) -> Self
+pub fn Robot::add_loop_constraint(Self, LoopConstraint) -> Self
 pub fn Robot::add_material(Self, Material) -> Self
 pub fn Robot::add_transmission(Self, Transmission) -> Self
 pub fn Robot::diagnostics(Self) -> Array[Diagnostic]
@@ -464,6 +476,7 @@ pub fn Robot::link_world_origins(Self, joint_positions? : Map[String, Double]) -
 pub fn Robot::new(String, version? : String?, documentation? : String) -> Self
 pub fn Robot::not_equal(Self, Self) -> Bool
 pub fn Robot::root_link(Self) -> String?
+pub fn Robot::to_mjcf_string(Self, mesh_dir? : String, include_floor? : Bool) -> String
 pub fn Robot::to_repr(Self) -> @debug.Repr
 pub fn Robot::to_string(Self) -> String
 pub fn Robot::to_urdf_file_checked(Self) -> String

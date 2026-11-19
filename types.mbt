@@ -452,6 +452,30 @@ pub(all) struct Transmission {
 }
 
 ///|
+/// A closed-chain constraint between two link frames. Anchors are metres in
+/// each link's local frame.
+#derive(Debug, Eq)
+pub(all) struct LoopConstraint {
+  name : String
+  body1 : String
+  anchor1 : Vec3
+  body2 : String
+  anchor2 : Vec3
+}
+
+///|
+/// LoopConstraint::connect builds a closed-chain constraint.
+pub fn LoopConstraint::connect(
+  name~ : String,
+  body1~ : String,
+  anchor1~ : Vec3,
+  body2~ : String,
+  anchor2~ : Vec3,
+) -> LoopConstraint {
+  { name, body1, anchor1, body2, anchor2, }
+}
+
+///|
 /// A complete URDF robot model.
 #derive(Debug, Eq)
 pub(all) struct Robot {
@@ -462,5 +486,8 @@ pub(all) struct Robot {
   links : Array[Link]
   joints : Array[Joint]
   transmissions : Array[Transmission]
+  /// Closed-chain constraints. URDF keeps them as comments; MJCF emits
+  /// `<equality><connect>`.
+  loop_constraints : Array[LoopConstraint]
   extra : Array[RawXmlNode]
 }

@@ -52,6 +52,14 @@ async test "writes a full bundle that passes the Python validator" {
   assert_true(@fs.exists(urdf_path))
   assert_true(@fs.exists(dir + "/package.xml"))
   assert_true(@fs.exists(dir + "/meshes/part.gltf"))
+  let mjcf_path = dir + "/mjcf/" + robot.name + ".xml"
+  assert_true(@fs.exists(mjcf_path))
+  let mjcf_text = @fs.read_file(mjcf_path).text()
+  assert_true(mjcf_text.contains("<mujoco model=\"bundle_bot\">"))
+  // Collisions take precedence over visual meshes, so the MJCF uses the box
+  // geom and does not declare the unused glTF visual asset.
+  assert_true(mjcf_text.contains("<geom name=\"base_geom_0\" type=\"box\""))
+  assert_false(mjcf_text.contains("<mesh "))
   let package_xml = @fs.read_file(dir + "/package.xml").text()
   assert_true(package_xml.contains("<name>galileo_quadruped</name>"))
   let urdf_text = @fs.read_file(urdf_path).text()

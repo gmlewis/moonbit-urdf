@@ -448,6 +448,23 @@ pub fn Robot::to_urdf_xml(self : Robot) -> String {
   for transmission in self.transmissions {
     write_transmission(sb, 1, transmission)
   }
+  // Closed-chain constraints are not part of URDF's tree model. Keep them in a
+  // comment so every anchor survives round-trips without breaking readers.
+  for constraint in self.loop_constraints {
+    sb.write_string(
+      "<!-- loop_constraint: " +
+      xml_escape(constraint.name) +
+      " body1=" +
+      xml_escape(constraint.body1) +
+      " anchor1=" +
+      fmt_vec3(constraint.anchor1) +
+      " body2=" +
+      xml_escape(constraint.body2) +
+      " anchor2=" +
+      fmt_vec3(constraint.anchor2) +
+      " -->\n",
+    )
+  }
   for node in self.extra {
     write_extra(sb, 1, node)
   }
