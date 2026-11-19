@@ -204,3 +204,46 @@ pub fn Density::steel_mild() -> Density {
 pub fn Density::titanium() -> Density {
   { kg_per_m3: 4430.0, }
 }
+
+///|
+/// Short alias for mild steel (`steel_mild`), the material robotics builders
+/// reach for most often.
+pub fn Density::steel() -> Density {
+  Density::steel_mild()
+}
+
+///|
+/// Carbon-fiber reinforced nylon, typical of printed structural links.
+pub fn Density::cf_nylon() -> Density {
+  { kg_per_m3: 1250.0, }
+}
+
+///|
+/// Rubber, typical of tires, feet, and vibration isolators.
+pub fn Density::rubber() -> Density {
+  { kg_per_m3: 1150.0, }
+}
+
+///|
+/// Lithium-polymer battery pack, including cells, packaging, and wiring.
+pub fn Density::lipo_battery() -> Density {
+  { kg_per_m3: 1850.0, }
+}
+
+///|
+/// FR-4 printed-circuit board (approximate, copper included).
+pub fn Density::fr4_pcb() -> Density {
+  { kg_per_m3: 1850.0, }
+}
+
+///|
+/// Brass, typical of standoffs and bushings.
+pub fn Density::brass() -> Density {
+  { kg_per_m3: 8500.0, }
+}
+
+///|
+/// Acetal (Delrin/POM), typical of low-friction bushings and gears.
+pub fn Density::delrin() -> Density {
+  { kg_per_m3: 1410.0, }
+}

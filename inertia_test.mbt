@@ -209,3 +209,53 @@ test "degenerate and empty inputs" {
   let tri = @urdf.Inertial::from_triangles([], density=@urdf.Density::pla())
   assert_true(near_i(tri.mass, 0.0))
 }
+
+///|
+test "robotics material density presets are positive and ordered" {
+  let presets : Array[(String, @urdf.Density)] = [
+    ("pla", @urdf.Density::pla()),
+    ("petg", @urdf.Density::petg()),
+    ("abs", @urdf.Density::abs()),
+    ("tpu", @urdf.Density::tpu()),
+    ("cf_nylon", @urdf.Density::cf_nylon()),
+    ("rubber", @urdf.Density::rubber()),
+    ("lipo_battery", @urdf.Density::lipo_battery()),
+    ("fr4_pcb", @urdf.Density::fr4_pcb()),
+    ("delrin", @urdf.Density::delrin()),
+    ("aluminum", @urdf.Density::aluminum_6061()),
+    ("steel", @urdf.Density::steel()),
+    ("brass", @urdf.Density::brass()),
+  ]
+  for entry in presets {
+    assert_true(entry.1.to_kg_per_m3() > 0.0)
+  }
+  assert_true(near_i(@urdf.Density::steel().to_kg_per_m3(), 7850.0))
+  assert_true(
+    near_i(
+      @urdf.Density::steel().to_kg_per_m3(),
+      @urdf.Density::steel_mild().to_kg_per_m3(),
+    ),
+  )
+  assert_true(near_i(@urdf.Density::cf_nylon().to_kg_per_m3(), 1250.0))
+  assert_true(near_i(@urdf.Density::rubber().to_kg_per_m3(), 1150.0))
+  assert_true(near_i(@urdf.Density::lipo_battery().to_kg_per_m3(), 1850.0))
+  assert_true(near_i(@urdf.Density::fr4_pcb().to_kg_per_m3(), 1850.0))
+  assert_true(near_i(@urdf.Density::brass().to_kg_per_m3(), 8500.0))
+  assert_true(near_i(@urdf.Density::delrin().to_kg_per_m3(), 1410.0))
+  assert_true(
+    @urdf.Density::pla().to_kg_per_m3() <
+    @urdf.Density::cf_nylon().to_kg_per_m3(),
+  )
+  assert_true(
+    @urdf.Density::cf_nylon().to_kg_per_m3() <
+    @urdf.Density::aluminum_6061().to_kg_per_m3(),
+  )
+  assert_true(
+    @urdf.Density::aluminum_6061().to_kg_per_m3() <
+    @urdf.Density::steel().to_kg_per_m3(),
+  )
+  assert_true(
+    @urdf.Density::steel().to_kg_per_m3() <
+    @urdf.Density::brass().to_kg_per_m3(),
+  )
+}

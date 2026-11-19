@@ -97,11 +97,18 @@ pub struct Density {
 }
 pub fn Density::abs() -> Self
 pub fn Density::aluminum_6061() -> Self
+pub fn Density::brass() -> Self
 pub fn Density::carbon_fiber() -> Self
+pub fn Density::cf_nylon() -> Self
+pub fn Density::delrin() -> Self
+pub fn Density::fr4_pcb() -> Self
 pub fn Density::g_per_cm3(Double) -> Self
 pub fn Density::kg_per_m3(Double) -> Self
+pub fn Density::lipo_battery() -> Self
 pub fn Density::petg() -> Self
 pub fn Density::pla() -> Self
+pub fn Density::rubber() -> Self
+pub fn Density::steel() -> Self
 pub fn Density::steel_mild() -> Self
 pub fn Density::titanium() -> Self
 pub fn Density::to_kg_per_m3(Self) -> Double
