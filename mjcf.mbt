@@ -181,8 +181,20 @@ fn mjcf_collect_assets(robot : Robot) -> MjcfAssets {
     }
   }
   for link in robot.links {
-    // Only the geoms that are actually emitted contribute assets: collisions
-    // take precedence over visuals, matching `mjcf_write_body`.
+    // Always collect visual materials so collision geoms inherit each link's
+    // CAD colors in MuJoCo.
+    for visual in link.visuals {
+      match visual.material {
+        Some(mat) =>
+          match mat.color {
+            Some(color) => assets.materials.set(mat.name, fmt_rgba(color))
+            None => ()
+          }
+        None => ()
+      }
+    }
+    // Only the geoms that are actually emitted contribute mesh assets:
+    // collisions take precedence over visuals, matching `mjcf_write_body`.
     if link.collisions.length() > 0 {
       for collision in link.collisions {
         match collision.geometry {
