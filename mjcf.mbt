@@ -615,23 +615,52 @@ fn mjcf_write_body(
     Some(inertial) => mjcf_write_inertial(sb, inertial, level + 1)
     None => ()
   }
+  let visual_materials : Map[String, Material] = Map([])
+  let mut fallback_material : Material? = None
+  for visual in link.visuals {
+    match visual.material {
+      Some(mat) => {
+        if fallback_material is None {
+          fallback_material = Some(mat)
+        }
+        match visual.name {
+          Some(vname) => visual_materials.set(vname, mat)
+          None => ()
+        }
+      }
+      None => ()
+    }
+  }
   // MuJoCo requires unique geom names; link name + ordinal is unique across
   // the model even when a STEP component repeats a layer name.
   let mut geom_index = 0
   if link.collisions.length() > 0 {
     for collision in link.collisions {
+      let part_name = match collision.name {
+        Some(value) => value
+        None => link.name
+      }
+      let mat = match visual_materials.get(part_name) {
+        Some(m) => Some(m)
+        None =>
+          if geom_index < link.visuals.length() {
+            match link.visuals[geom_index].material {
+              Some(m) => Some(m)
+              None => fallback_material
+            }
+          } else {
+            fallback_material
+          }
+      }
       mjcf_write_geom(
         sb,
         link.name + "_geom_" + geom_index.to_string(),
         collision.origin,
         collision.geometry,
-        None,
+        mat,
         assets,
         link.name,
-        match collision.name {
-          Some(value) => value
-          None => link.name
-        },
+        part_name,
         level + 1,
       )
       geom_index = geom_index + 1
@@ -853,6 +882,10 @@ pub fn Robot::to_mjcf_with_options(
   )
   pad(sb, 1)
   sb.write_string("<option gravity=\"0 0 -9.81\" timestep=\"0.002\"/>\n")
+  pad(sb, 1)
+  sb.write_string(
+    "<visual><headlight ambient=\"0.38 0.38 0.38\" diffuse=\"0.65 0.65 0.65\" specular=\"0.15 0.15 0.15\"/></visual>\n",
+  )
   if options.default_damping > 0.0 || options.default_armature > 0.0 {
     pad(sb, 1)
     sb.write_string(
@@ -924,6 +957,10 @@ pub fn Robot::to_mjcf_with_options(
   let qpos_names : Array[String] = []
   pad(sb, 1)
   sb.write_string("<worldbody>\n")
+  pad(sb, 2)
+  sb.write_string(
+    "<light name=\"sun\" pos=\"0 0 3.5\" dir=\"0 0 -1\" diffuse=\"0.85 0.85 0.85\" specular=\"0.2 0.2 0.2\"/>\n",
+  )
   if options.include_floor {
     pad(sb, 2)
     sb.write_string(
