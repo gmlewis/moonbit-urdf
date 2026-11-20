@@ -394,6 +394,29 @@ pub(all) struct MeshAsset {
 }
 
 #derive(Eq, @debug.Debug)
+pub(all) enum MjcfActuator {
+  Motor(String, String, Double, Double, Double)
+  Position(String, String, Double, Double, Double, Double, Double?)
+  Velocity(String, String, Double, Double, Double, Double?)
+}
+pub fn MjcfActuator::motor(joint~ : String, name? : String, ctrl_min~ : Double, ctrl_max~ : Double, gear? : Double) -> Self
+pub fn MjcfActuator::position(joint~ : String, name? : String, kp~ : Double, kv~ : Double, ctrl_min~ : Double, ctrl_max~ : Double, forcerange? : Double) -> Self
+pub fn MjcfActuator::velocity(joint~ : String, name? : String, kv~ : Double, ctrl_min~ : Double, ctrl_max~ : Double, forcerange? : Double) -> Self
+
+pub(all) struct MjcfOptions {
+  mesh_dir : String
+  include_floor : Bool
+  root_z_m : Double?
+  home_qpos : Map[String, Double]
+  actuators : Array[MjcfActuator]
+  freeze_joints : Array[String]
+  default_damping : Double
+  default_armature : Double
+  exclude_adjacent_contacts : Bool
+}
+pub fn MjcfOptions::new(mesh_dir? : String, include_floor? : Bool, root_z_m? : Double?, home_qpos? : Map[String, Double], actuators? : Array[MjcfActuator], freeze_joints? : Array[String], default_damping? : Double, default_armature? : Double, exclude_adjacent_contacts? : Bool) -> Self
+
+#derive(Eq, @debug.Debug)
 pub(all) struct Origin {
   xyz : (Double, Double, Double)
   rpy : (Double, Double, Double)
@@ -477,6 +500,7 @@ pub fn Robot::new(String, version? : String?, documentation? : String) -> Self
 pub fn Robot::not_equal(Self, Self) -> Bool
 pub fn Robot::root_link(Self) -> String?
 pub fn Robot::to_mjcf_string(Self, mesh_dir? : String, include_floor? : Bool) -> String
+pub fn Robot::to_mjcf_with_options(Self, MjcfOptions) -> String
 pub fn Robot::to_repr(Self) -> @debug.Repr
 pub fn Robot::to_string(Self) -> String
 pub fn Robot::to_urdf_file_checked(Self) -> String
@@ -550,11 +574,13 @@ pub(all) struct UrdfBundle {
   package_name : String
   robot : Robot
   meshes : Array[MeshAsset]
+  mjcf_options : MjcfOptions?
 }
 pub fn UrdfBundle::add_mesh_bytes(Self, String, Bytes) -> Self
 pub fn UrdfBundle::add_mesh_text(Self, String, String) -> Self
 pub fn UrdfBundle::new(String, Robot) -> Self
 pub fn UrdfBundle::package_xml(Self, version? : String, description? : String, maintainer? : String, email? : String, license? : String) -> String
+pub fn UrdfBundle::with_mjcf_options(Self, MjcfOptions) -> Self
 pub async fn UrdfBundle::write_to_dir(Self, String, checked? : Bool) -> Unit
 
 #derive(Eq, @debug.Debug)

@@ -2,6 +2,107 @@
 /// MuJoCo MJCF serialization.
 
 ///|
+/// One actuator declaration for the MJCF `<actuator>` section.
+///
+/// The tuple fields are `(joint, name, ...)`; use the snake-case constructors
+/// (`MjcfActuator::motor`, `::position`, `::velocity`) for readable call sites.
+#derive(Debug, Eq)
+pub(all) enum MjcfActuator {
+  /// Torque/force motor: joint, name, ctrl_min, ctrl_max, gear.
+  Motor(String, String, Double, Double, Double)
+  /// Position servo: joint, name, kp, kv, ctrl_min, ctrl_max, forcerange.
+  Position(String, String, Double, Double, Double, Double, Double?)
+  /// Velocity servo: joint, name, kv, ctrl_min, ctrl_max, forcerange.
+  Velocity(String, String, Double, Double, Double, Double?)
+}
+
+///|
+pub fn MjcfActuator::motor(
+  joint~ : String,
+  name~ : String = "",
+  ctrl_min~ : Double,
+  ctrl_max~ : Double,
+  gear~ : Double = 1.0,
+) -> MjcfActuator {
+  Motor(joint, name, ctrl_min, ctrl_max, gear)
+}
+
+///|
+pub fn MjcfActuator::position(
+  joint~ : String,
+  name~ : String = "",
+  kp~ : Double,
+  kv~ : Double,
+  ctrl_min~ : Double,
+  ctrl_max~ : Double,
+  forcerange? : Double,
+) -> MjcfActuator {
+  Position(joint, name, kp, kv, ctrl_min, ctrl_max, forcerange)
+}
+
+///|
+pub fn MjcfActuator::velocity(
+  joint~ : String,
+  name~ : String = "",
+  kv~ : Double,
+  ctrl_min~ : Double,
+  ctrl_max~ : Double,
+  forcerange? : Double,
+) -> MjcfActuator {
+  Velocity(joint, name, kv, ctrl_min, ctrl_max, forcerange)
+}
+
+///|
+/// Simulation-oriented MJCF options.
+///
+/// The defaults reproduce the original exporter's structure; the CAD compiler
+/// fills these in for a standing-pose, contact-clean RL model.
+pub(all) struct MjcfOptions {
+  mesh_dir : String
+  include_floor : Bool
+  /// World Z lift for the root free body. Computed from the home pose's
+  /// lowest collision geometry when `None` and `home_qpos` is non-empty.
+  root_z_m : Double?
+  /// Home/standing joint positions (joint name -> radians or metres).
+  home_qpos : Map[String, Double]
+  /// Explicit actuators. Empty keeps the legacy "motor for every limited joint"
+  /// behavior.
+  actuators : Array[MjcfActuator]
+  /// Joints to omit from the model (welded bodies), e.g. cosmetic rotors.
+  freeze_joints : Array[String]
+  /// Default joint damping (N*m*s/rad) and reflected armature (kg*m^2).
+  default_damping : Double
+  default_armature : Double
+  /// Emit `<contact><exclude>` pairs for adjacent and loop-constrained bodies.
+  exclude_adjacent_contacts : Bool
+}
+
+///|
+pub fn MjcfOptions::new(
+  mesh_dir~ : String = "meshes",
+  include_floor~ : Bool = true,
+  root_z_m~ : Double? = None,
+  home_qpos~ : Map[String, Double] = Map([]),
+  actuators~ : Array[MjcfActuator] = [],
+  freeze_joints~ : Array[String] = [],
+  default_damping~ : Double = 0.0,
+  default_armature~ : Double = 0.0,
+  exclude_adjacent_contacts~ : Bool = false,
+) -> MjcfOptions {
+  {
+    mesh_dir,
+    include_floor,
+    root_z_m,
+    home_qpos,
+    actuators,
+    freeze_joints,
+    default_damping,
+    default_armature,
+    exclude_adjacent_contacts,
+  }
+}
+
+///|
 priv struct MjcfAssets {
   meshes : Map[String, String]
   materials : Map[String, String]
@@ -43,6 +144,16 @@ fn mjcf_mesh_name(path : String) -> String {
 }
 
 ///|
+fn mjcf_name(name : String) -> String {
+  name
+  .replace_all(old="/", new="_")
+  .replace_all(old="\\", new="_")
+  .replace_all(old=".", new="_")
+  .replace_all(old="-", new="_")
+  .replace_all(old=" ", new="_")
+}
+
+///|
 fn mjcf_sorted_keys(map : Map[String, String]) -> Array[String] {
   let keys : Array[String] = []
   for key, _ in map {
@@ -71,8 +182,7 @@ fn mjcf_collect_assets(robot : Robot) -> MjcfAssets {
   }
   for link in robot.links {
     // Only the geoms that are actually emitted contribute assets: collisions
-    // take precedence over visuals, matching `mjcf_write_body`. An unused
-    // glTF visual asset would still be loaded by MuJoCo, so leave it out.
+    // take precedence over visuals, matching `mjcf_write_body`.
     if link.collisions.length() > 0 {
       for collision in link.collisions {
         match collision.geometry {
@@ -142,7 +252,21 @@ fn mjcf_write_inertial(
 }
 
 ///|
-fn mjcf_write_joint(sb : StringBuilder, joint : Joint, level : Int32) -> Unit {
+fn mjcf_is_frozen(options : MjcfOptions, joint : Joint) -> Bool {
+  options.freeze_joints.contains(joint.name)
+}
+
+///|
+fn mjcf_write_joint(
+  sb : StringBuilder,
+  joint : Joint,
+  options : MjcfOptions,
+  qpos_names : Array[String],
+  level : Int32,
+) -> Unit {
+  if mjcf_is_frozen(options, joint) {
+    return
+  }
   match joint.joint_type {
     Fixed => ()
     Floating => {
@@ -150,6 +274,7 @@ fn mjcf_write_joint(sb : StringBuilder, joint : Joint, level : Int32) -> Unit {
       sb.write_string("<freejoint/>\n")
     }
     Revolute | Continuous => {
+      qpos_names.push(joint.name)
       pad(sb, level)
       sb.write_string(
         "<joint name=\"" +
@@ -176,6 +301,7 @@ fn mjcf_write_joint(sb : StringBuilder, joint : Joint, level : Int32) -> Unit {
       sb.write_string("/>\n")
     }
     Prismatic => {
+      qpos_names.push(joint.name)
       pad(sb, level)
       sb.write_string(
         "<joint name=\"" +
@@ -184,7 +310,6 @@ fn mjcf_write_joint(sb : StringBuilder, joint : Joint, level : Int32) -> Unit {
         fmt_vec3(joint.axis) +
         "\"",
       )
-      // Prismatic limits use the same range form as hinges.
       match joint.limit {
         Some(limit) =>
           match (limit.lower, limit.upper) {
@@ -203,6 +328,8 @@ fn mjcf_write_joint(sb : StringBuilder, joint : Joint, level : Int32) -> Unit {
       sb.write_string("/>\n")
     }
     Planar => {
+      qpos_names.push(joint.name)
+      qpos_names.push(joint.name + "_y")
       pad(sb, level)
       sb.write_string(
         "<joint name=\"" +
@@ -220,6 +347,180 @@ fn mjcf_write_joint(sb : StringBuilder, joint : Joint, level : Int32) -> Unit {
 }
 
 ///|
+/// Contact class for one geom: tires/wheels/feet collide with the floor only;
+/// structural parts collide with the floor if the robot falls over; internal
+/// actuator hardware (stators, gears, bearings, screws) never collides, so a
+/// bulky bounding box inside a wheel cannot lift the robot onto its calf.
+fn mjcf_contact_attrs(link_name : String, part_name : String) -> String {
+  let part = part_name.to_lower()
+  let internal = part.contains("stator") ||
+    part.contains("_act_") ||
+    part.contains("act_a12") ||
+    part.contains("planet") ||
+    part.contains("herringbone") ||
+    part.contains("ring") ||
+    part.contains("sun") ||
+    part.contains("gear") ||
+    part.contains("moteus") ||
+    part.contains("pcb") ||
+    part.contains("bearing") ||
+    part.contains("_pin") ||
+    part.contains("shaft") ||
+    part.contains("screw") ||
+    part.contains("bolt") ||
+    part.contains("iso4762")
+  if internal {
+    return " contype=\"0\" conaffinity=\"0\""
+  }
+  let lower = link_name.to_lower()
+  if lower.contains("tire") || lower.contains("wheel") || lower.contains("foot") {
+    " contype=\"2\" conaffinity=\"1\" friction=\"1.2 0.01 0.001\""
+  } else {
+    " contype=\"4\" conaffinity=\"1\" friction=\"1.0 0.01 0.001\""
+  }
+}
+
+///|
+fn mjcf_geom_min_z(t : Transform, geometry : Geometry) -> Double? {
+  match geometry {
+    Box(size) => {
+      let (sx, sy, sz) = size
+      let xs : Array[Double] = [-sx / 2.0, sx / 2.0]
+      let ys : Array[Double] = [-sy / 2.0, sy / 2.0]
+      let zs : Array[Double] = [-sz / 2.0, sz / 2.0]
+      let mut lowest = 1.0e18
+      for x in xs {
+        for y in ys {
+          for z in zs {
+            let p = t.apply_point((x, y, z))
+            if p.2 < lowest {
+              lowest = p.2
+            }
+          }
+        }
+      }
+      Some(lowest)
+    }
+    Cylinder(radius, length) => {
+      let axis = t.apply_dir((0.0, 0.0, 1.0))
+      let vertical = if axis.2.abs() > 1.0 { 1.0 } else { axis.2.abs() }
+      let horizontal = (1.0 - vertical * vertical).sqrt()
+      Some(t.trans.2 - (length / 2.0 * vertical + radius * horizontal))
+    }
+    Sphere(radius) => Some(t.trans.2 - radius)
+    Mesh(_, _) => None
+  }
+}
+
+///|
+fn mjcf_min_world_z(robot : Robot, qpos : Map[String, Double]) -> Double? {
+  let fk = robot.forward_kinematics(joint_positions=qpos)
+  let mut found = false
+  let mut lowest = 1.0e18
+  for link in robot.links {
+    let world = fk.get(link.name).unwrap_or(Transform::identity())
+    let geoms : Array[(Origin, Geometry)] = if link.collisions.length() > 0 {
+      link.collisions.map(fn(collision) {
+        (collision.origin, collision.geometry)
+      })
+    } else {
+      link.visuals.map(fn(visual) { (visual.origin, visual.geometry) })
+    }
+    for entry in geoms {
+      let frame = world.compose(Transform::from_origin(entry.0))
+      match mjcf_geom_min_z(frame, entry.1) {
+        Some(z) => {
+          if z < lowest {
+            lowest = z
+          }
+          found = true
+        }
+        None => ()
+      }
+    }
+  }
+  if found {
+    Some(lowest)
+  } else {
+    None
+  }
+}
+
+///|
+/// Sites used by `<connect site1 site2>` for each loop constraint: the first
+/// anchor lives on body1, the second on body2 (both in their link frames).
+fn mjcf_loop_sites(robot : Robot) -> Map[String, Array[(String, Vec3)]] {
+  let sites : Map[String, Array[(String, Vec3)]] = Map([])
+  for constraint in robot.loop_constraints {
+    let base = mjcf_name(constraint.name)
+    let first = (base + "_site1", constraint.anchor1)
+    let second = (base + "_site2", constraint.anchor2)
+    match sites.get(constraint.body1) {
+      Some(entries) => entries.push(first)
+      None => sites.set(constraint.body1, [first])
+    }
+    match sites.get(constraint.body2) {
+      Some(entries) => entries.push(second)
+      None => sites.set(constraint.body2, [second])
+    }
+  }
+  sites
+}
+
+///|
+fn mjcf_pair_key(a : String, b : String) -> String {
+  if a < b {
+    a + "|" + b
+  } else {
+    b + "|" + a
+  }
+}
+
+///|
+fn mjcf_add_pair(
+  pairs : Array[(String, String)],
+  keys : Array[String],
+  a : String,
+  b : String,
+) -> Unit {
+  if a == b {
+    return
+  }
+  let key = mjcf_pair_key(a, b)
+  if !keys.contains(key) {
+    keys.push(key)
+    pairs.push((a, b))
+  }
+}
+
+///|
+fn mjcf_contact_pairs(robot : Robot) -> Array[(String, String)] {
+  let pairs : Array[(String, String)] = []
+  let keys : Array[String] = []
+  for joint in robot.joints {
+    mjcf_add_pair(pairs, keys, joint.parent, joint.child)
+  }
+  for constraint in robot.loop_constraints {
+    mjcf_add_pair(pairs, keys, constraint.body1, constraint.body2)
+  }
+  let groups : Map[String, Array[String]] = Map([])
+  for joint in robot.joints {
+    match groups.get(joint.parent) {
+      Some(children) => children.push(joint.child)
+      None => groups.set(joint.parent, [joint.child])
+    }
+  }
+  for _parent, children in groups {
+    for i in 0..<children.length() {
+      for j in (i + 1)..<children.length() {
+        mjcf_add_pair(pairs, keys, children[i], children[j])
+      }
+    }
+  }
+  pairs
+}
+
+///|
 fn mjcf_write_geom(
   sb : StringBuilder,
   name : String,
@@ -227,6 +528,8 @@ fn mjcf_write_geom(
   geometry : Geometry,
   material : Material?,
   assets : MjcfAssets,
+  link_name : String,
+  part_name : String,
   level : Int32,
 ) -> Unit {
   pad(sb, level)
@@ -267,6 +570,7 @@ fn mjcf_write_geom(
       }
     None => ()
   }
+  sb.write_string(mjcf_contact_attrs(link_name, part_name))
   sb.write_string("/>\n")
 }
 
@@ -281,6 +585,10 @@ fn mjcf_write_body(
   children : Map[String, Array[Joint]],
   assets : MjcfAssets,
   imu_sites : Array[String],
+  options : MjcfOptions,
+  root_z : Double,
+  loop_sites : Map[String, Array[(String, Vec3)]],
+  qpos_names : Array[String],
 ) -> Unit {
   pad(sb, level)
   sb.write_string("<body name=\"" + xml_escape(link.name) + "\"")
@@ -293,7 +601,7 @@ fn mjcf_write_body(
         mjcf_quat(joint.origin.rpy) +
         "\"",
       )
-    None => sb.write_string(" pos=\"0 0 0\"")
+    None => sb.write_string(" pos=\"0 0 " + fmt_num(root_z) + "\"")
   }
   sb.write_string(">\n")
   match incoming_joint {
@@ -301,7 +609,7 @@ fn mjcf_write_body(
       pad(sb, level + 1)
       sb.write_string("<freejoint/>\n")
     }
-    Some(joint) => mjcf_write_joint(sb, joint, level + 1)
+    Some(joint) => mjcf_write_joint(sb, joint, options, qpos_names, level + 1)
   }
   match link.inertial {
     Some(inertial) => mjcf_write_inertial(sb, inertial, level + 1)
@@ -319,6 +627,11 @@ fn mjcf_write_body(
         collision.geometry,
         None,
         assets,
+        link.name,
+        match collision.name {
+          Some(value) => value
+          None => link.name
+        },
         level + 1,
       )
       geom_index = geom_index + 1
@@ -332,6 +645,8 @@ fn mjcf_write_body(
         visual.geometry,
         visual.material,
         assets,
+        link.name,
+        link.name,
         level + 1,
       )
       geom_index = geom_index + 1
@@ -344,6 +659,21 @@ fn mjcf_write_body(
       "<site name=\"" + xml_escape(site) + "\" pos=\"0 0 0\" size=\"0.005\"/>\n",
     )
     imu_sites.push(site)
+  }
+  // Loop-constraint sites: `<connect site1 site2>` ties these exact points.
+  match loop_sites.get(link.name) {
+    Some(entries) =>
+      for entry in entries {
+        pad(sb, level + 1)
+        sb.write_string(
+          "<site name=\"" +
+          xml_escape(entry.0) +
+          "\" pos=\"" +
+          fmt_vec3(entry.1) +
+          "\" size=\"0.005\"/>\n",
+        )
+      }
+    None => ()
   }
   match children.get(link.name) {
     Some(outgoing) =>
@@ -360,6 +690,10 @@ fn mjcf_write_body(
               children,
               assets,
               imu_sites,
+              options,
+              root_z,
+              loop_sites,
+              qpos_names,
             )
           None => ()
         }
@@ -371,64 +705,166 @@ fn mjcf_write_body(
 }
 
 ///|
-fn mjcf_write_actuators(sb : StringBuilder, robot : Robot) -> Unit {
-  let motors : Array[Joint] = []
-  for joint in robot.joints {
-    let actuated = match joint.joint_type {
-      Revolute | Continuous | Prismatic => true
-      _ => false
-    }
-    match joint.limit {
-      Some(limit) => if actuated && limit.effort > 0.0 { motors.push(joint) }
-      None => ()
-    }
-  }
-  if motors.length() > 0 {
-    pad(sb, 1)
-    sb.write_string("<actuator>\n")
-    for joint in motors {
-      let effort = match joint.limit {
-        Some(limit) => limit.effort
-        None => 0.0
-      }
-      pad(sb, 2)
-      sb.write_string(
-        "<motor name=\"" +
-        xml_escape(joint.name + "_motor") +
-        "\" joint=\"" +
-        xml_escape(joint.name) +
-        "\" ctrlrange=\"-" +
-        fmt_num(effort) +
-        " " +
-        fmt_num(effort) +
-        "\"/>\n",
-      )
-    }
-    pad(sb, 1)
-    sb.write_string("</actuator>\n")
+fn mjcf_forcerange(value : Double?) -> String {
+  match value {
+    Some(limit) =>
+      " forcerange=\"-" + fmt_num(limit) + " " + fmt_num(limit) + "\""
+    None => ""
   }
 }
 
 ///|
-/// Converts the robot to MuJoCo MJCF XML.
-///
-/// The root link is floating (`<freejoint/>`), collisions are used as geoms
-/// when present (visuals otherwise), and every `LoopConstraint` becomes a
-/// native `<equality><connect>`.
-pub fn Robot::to_mjcf_string(
+fn mjcf_write_actuator(sb : StringBuilder, actuator : MjcfActuator) -> Unit {
+  match actuator {
+    Motor(joint, name, ctrl_min, ctrl_max, gear) => {
+      pad(sb, 2)
+      sb.write_string(
+        "<motor name=\"" +
+        xml_escape(if name == "" { joint + "_motor" } else { name }) +
+        "\" joint=\"" +
+        xml_escape(joint) +
+        "\" ctrlrange=\"" +
+        fmt_num(ctrl_min) +
+        " " +
+        fmt_num(ctrl_max) +
+        "\"" +
+        (if (gear - 1.0).abs() > 1.0e-9 {
+          " gear=\"" + fmt_num(gear) + "\""
+        } else {
+          ""
+        }) +
+        "/>\n",
+      )
+    }
+    Position(joint, name, kp, kv, ctrl_min, ctrl_max, forcerange) => {
+      pad(sb, 2)
+      sb.write_string(
+        "<position name=\"" +
+        xml_escape(if name == "" { joint + "_pos" } else { name }) +
+        "\" joint=\"" +
+        xml_escape(joint) +
+        "\" kp=\"" +
+        fmt_num(kp) +
+        "\" kv=\"" +
+        fmt_num(kv) +
+        "\" ctrlrange=\"" +
+        fmt_num(ctrl_min) +
+        " " +
+        fmt_num(ctrl_max) +
+        "\"" +
+        mjcf_forcerange(forcerange) +
+        "/>\n",
+      )
+    }
+    Velocity(joint, name, kv, ctrl_min, ctrl_max, forcerange) => {
+      pad(sb, 2)
+      sb.write_string(
+        "<velocity name=\"" +
+        xml_escape(if name == "" { joint + "_vel" } else { name }) +
+        "\" joint=\"" +
+        xml_escape(joint) +
+        "\" kv=\"" +
+        fmt_num(kv) +
+        "\" ctrlrange=\"" +
+        fmt_num(ctrl_min) +
+        " " +
+        fmt_num(ctrl_max) +
+        "\"" +
+        mjcf_forcerange(forcerange) +
+        "/>\n",
+      )
+    }
+  }
+}
+
+///|
+fn mjcf_write_actuators(
+  sb : StringBuilder,
+  robot : Robot,
+  options : MjcfOptions,
+) -> Unit {
+  let explicit = options.actuators
+  let legacy : Array[Joint] = []
+  if explicit.length() == 0 {
+    for joint in robot.joints {
+      let actuated = match joint.joint_type {
+        Revolute | Continuous | Prismatic => true
+        _ => false
+      }
+      if actuated && !mjcf_is_frozen(options, joint) {
+        match joint.limit {
+          Some(limit) => if limit.effort > 0.0 { legacy.push(joint) }
+          None => ()
+        }
+      }
+    }
+  }
+  if explicit.length() == 0 && legacy.length() == 0 {
+    return
+  }
+  pad(sb, 1)
+  sb.write_string("<actuator>\n")
+  if explicit.length() > 0 {
+    for actuator in explicit {
+      mjcf_write_actuator(sb, actuator)
+    }
+  } else {
+    for joint in legacy {
+      let effort = match joint.limit {
+        Some(limit) => limit.effort
+        None => 0.0
+      }
+      mjcf_write_actuator(
+        sb,
+        MjcfActuator::motor(joint=joint.name, ctrl_min=-effort, ctrl_max=effort),
+      )
+    }
+  }
+  pad(sb, 1)
+  sb.write_string("</actuator>\n")
+}
+
+///|
+/// Converts the robot to MuJoCo MJCF XML with simulation options.
+pub fn Robot::to_mjcf_with_options(
   self : Robot,
-  mesh_dir~ : String = "meshes",
-  include_floor~ : Bool = true,
+  options : MjcfOptions,
 ) -> String {
+  let root_z = match options.root_z_m {
+    Some(z) => z
+    None =>
+      if options.home_qpos.length() > 0 {
+        match mjcf_min_world_z(self, options.home_qpos) {
+          Some(lowest) => if lowest < 0.0 { -lowest + 0.004 } else { 0.0 }
+          None => 0.0
+        }
+      } else {
+        0.0
+      }
+  }
   let sb = StringBuilder()
   sb.write_string("<?xml version=\"1.0\"?>\n")
   sb.write_string("<mujoco model=\"" + xml_escape(self.name) + "\">\n")
   pad(sb, 1)
   sb.write_string(
-    "<compiler angle=\"radian\" meshdir=\"" + xml_escape(mesh_dir) + "\"/>\n",
+    "<compiler angle=\"radian\" meshdir=\"" +
+    xml_escape(options.mesh_dir) +
+    "\"/>\n",
   )
   pad(sb, 1)
   sb.write_string("<option gravity=\"0 0 -9.81\" timestep=\"0.002\"/>\n")
+  if options.default_damping > 0.0 || options.default_armature > 0.0 {
+    pad(sb, 1)
+    sb.write_string(
+      "<default>\n" +
+      "  <joint damping=\"" +
+      fmt_num(options.default_damping) +
+      "\" armature=\"" +
+      fmt_num(options.default_armature) +
+      "\"/>\n" +
+      "</default>\n",
+    )
+  }
 
   let assets = mjcf_collect_assets(self)
   let mesh_names = mjcf_sorted_keys(assets.meshes)
@@ -483,13 +919,15 @@ pub fn Robot::to_mjcf_string(
     root_name = self.links[0].name
   }
 
+  let loop_sites = mjcf_loop_sites(self)
   let imu_sites : Array[String] = []
+  let qpos_names : Array[String] = []
   pad(sb, 1)
   sb.write_string("<worldbody>\n")
-  if include_floor {
+  if options.include_floor {
     pad(sb, 2)
     sb.write_string(
-      "<geom name=\"floor\" type=\"plane\" size=\"0 0 0.05\" rgba=\"0.9 0.9 0.9 1\"/>\n",
+      "<geom name=\"floor\" type=\"plane\" size=\"0 0 0.05\" rgba=\"0.9 0.9 0.9 1\" contype=\"1\" conaffinity=\"1\" friction=\"1.0 0.01 0.001\"/>\n",
     )
   }
   match links.get(root_name) {
@@ -504,34 +942,57 @@ pub fn Robot::to_mjcf_string(
         children,
         assets,
         imu_sites,
+        options,
+        root_z,
+        loop_sites,
+        qpos_names,
       )
     None => ()
   }
   pad(sb, 1)
   sb.write_string("</worldbody>\n")
 
+  if options.exclude_adjacent_contacts {
+    let pairs = mjcf_contact_pairs(self)
+    if pairs.length() > 0 {
+      pad(sb, 1)
+      sb.write_string("<contact>\n")
+      for pair in pairs {
+        pad(sb, 2)
+        sb.write_string(
+          "<exclude body1=\"" +
+          xml_escape(pair.0) +
+          "\" body2=\"" +
+          xml_escape(pair.1) +
+          "\"/>\n",
+        )
+      }
+      pad(sb, 1)
+      sb.write_string("</contact>\n")
+    }
+  }
+
   if self.loop_constraints.length() > 0 {
     pad(sb, 1)
     sb.write_string("<equality>\n")
     for constraint in self.loop_constraints {
+      let base = mjcf_name(constraint.name)
       pad(sb, 2)
       sb.write_string(
         "<connect name=\"" +
         xml_escape(constraint.name) +
-        "\" body1=\"" +
-        xml_escape(constraint.body1) +
-        "\" body2=\"" +
-        xml_escape(constraint.body2) +
-        "\" anchor=\"" +
-        fmt_vec3(constraint.anchor1) +
-        "\"/>\n",
+        "\" site1=\"" +
+        xml_escape(base + "_site1") +
+        "\" site2=\"" +
+        xml_escape(base + "_site2") +
+        "\" solref=\"0.004 1\" solimp=\"0.99 0.999 0.001\"/>\n",
       )
     }
     pad(sb, 1)
     sb.write_string("</equality>\n")
   }
 
-  mjcf_write_actuators(sb, self)
+  mjcf_write_actuators(sb, self, options)
 
   if imu_sites.length() > 0 {
     pad(sb, 1)
@@ -558,6 +1019,34 @@ pub fn Robot::to_mjcf_string(
     sb.write_string("</sensor>\n")
   }
 
+  if options.home_qpos.length() > 0 || options.root_z_m is Some(_) {
+    let mut qpos = "0 0 " + fmt_num(root_z) + " 1 0 0 0"
+    for name in qpos_names {
+      qpos = qpos + " " + fmt_num(options.home_qpos.get(name).unwrap_or(0.0))
+    }
+    pad(sb, 1)
+    sb.write_string("<keyframe>\n")
+    pad(sb, 2)
+    sb.write_string("<key name=\"home\" qpos=\"" + qpos + "\"/>\n")
+    pad(sb, 1)
+    sb.write_string("</keyframe>\n")
+  }
+
   sb.write_string("</mujoco>\n")
   sb.to_string()
+}
+
+///|
+/// Converts the robot to MuJoCo MJCF XML with the legacy defaults.
+///
+/// The root link is floating (`<freejoint/>`), collisions are used as geoms
+/// when present (visuals otherwise), and every `LoopConstraint` becomes a
+/// native `<equality><connect>` between two site frames (`site1`/`site2`)
+/// placed at the constraint anchors.
+pub fn Robot::to_mjcf_string(
+  self : Robot,
+  mesh_dir~ : String = "meshes",
+  include_floor~ : Bool = true,
+) -> String {
+  self.to_mjcf_with_options(MjcfOptions::new(mesh_dir~, include_floor~))
 }

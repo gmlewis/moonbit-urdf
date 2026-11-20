@@ -92,3 +92,22 @@ async test "bundle writes a parseable urdf" {
       fail("parse failed: " + @urdf.format_urdf_parse_error(info))
   }
 }
+
+///|
+async test "bundle writes MJCF with the supplied options" {
+  let dir = @fs.tmpdir(prefix="urdf-bundle-mjcf-")
+  defer @fs.rmdir(dir, recursive=true)
+  let robot = bundle_robot()
+  let bundle = @urdf.UrdfBundle::new("pkg", robot).with_mjcf_options(
+    @urdf.MjcfOptions::new(
+      default_damping=0.5,
+      default_armature=0.01,
+      exclude_adjacent_contacts=true,
+    ),
+  )
+  bundle.write_to_dir(dir)
+  let mjcf_path = dir + "/mjcf/" + robot.name + ".xml"
+  let text = @fs.read_file(mjcf_path).text()
+  assert_true(text.contains("<joint damping=\"0.5\" armature=\"0.01\"/>"))
+  assert_true(text.contains("<exclude body1=\"base\" body2=\"arm\"/>"))
+}

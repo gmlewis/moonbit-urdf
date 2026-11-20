@@ -76,8 +76,14 @@ test "mjcf export carries the expected model structure" {
   )
   assert_true(xml.contains("<equality>"))
   assert_true(
+    xml.contains("<site name=\"loop_site1\" pos=\"0.1 0 0\" size=\"0.005\"/>"),
+  )
+  assert_true(
+    xml.contains("<site name=\"loop_site2\" pos=\"0.05 0 0\" size=\"0.005\"/>"),
+  )
+  assert_true(
     xml.contains(
-      "<connect name=\"loop\" body1=\"base\" body2=\"arm\" anchor=\"0.1 0 0\"/>",
+      "<connect name=\"loop\" site1=\"loop_site1\" site2=\"loop_site2\" solref=\"0.004 1\" solimp=\"0.99 0.999 0.001\"/>",
     ),
   )
   assert_true(xml.contains("<actuator>"))
@@ -149,4 +155,102 @@ async test "mjcf is well formed and keeps the robot valid" {
       fail(load_out.text())
     }
   }
+}
+
+///|
+test "mjcf options add ground lift, home keyframe, and contact excludes" {
+  let positions : Map[String, Double] = Map([])
+  positions.set("j", 0.3)
+  let options = @urdf.MjcfOptions::new(
+    mesh_dir="../meshes",
+    home_qpos=positions,
+    default_damping=0.5,
+    default_armature=0.01,
+    exclude_adjacent_contacts=true,
+  )
+  let xml = mjcf_demo_robot().to_mjcf_with_options(options)
+  assert_true(xml.contains("<body name=\"base\" pos=\"0 0 0.054"))
+  assert_true(xml.contains("<key name=\"home\" qpos=\"0 0 0.054"))
+  assert_true(xml.contains(" 1 0 0 0 0.3\"/>"))
+  assert_true(xml.contains("<default>"))
+  assert_true(xml.contains("<joint damping=\"0.5\" armature=\"0.01\"/>"))
+  assert_true(xml.contains("<exclude body1=\"base\" body2=\"arm\"/>"))
+  assert_true(xml.contains("<exclude body1=\"base\" body2=\"imu_link\"/>"))
+  assert_true(xml.contains("<exclude body1=\"arm\" body2=\"imu_link\"/>"))
+  assert_true(xml.contains("contype=\"1\""))
+  assert_true(xml.contains("contype=\"4\""))
+}
+
+///|
+test "mjcf options freeze internal joints" {
+  let options = @urdf.MjcfOptions::new(freeze_joints=["j"])
+  let xml = mjcf_demo_robot().to_mjcf_with_options(options)
+  assert_true(!xml.contains("<joint name=\"j\""))
+  assert_true(!xml.contains("<motor"))
+  assert_true(xml.contains("<equality>"))
+}
+
+///|
+test "mjcf options emit explicit position and velocity actuators" {
+  let options = @urdf.MjcfOptions::new(actuators=[
+    @urdf.MjcfActuator::position(
+      joint="j",
+      kp=70.0,
+      kv=3.0,
+      ctrl_min=-1.0,
+      ctrl_max=1.0,
+      forcerange=10.0,
+    ),
+    @urdf.MjcfActuator::velocity(
+      joint="wheel",
+      kv=2.0,
+      ctrl_min=-30.0,
+      ctrl_max=30.0,
+      forcerange=5.0,
+    ),
+  ])
+  let xml = mjcf_demo_robot().to_mjcf_with_options(options)
+  assert_true(
+    xml.contains(
+      "<position name=\"j_pos\" joint=\"j\" kp=\"70\" kv=\"3\" ctrlrange=\"-1 1\" forcerange=\"-10 10\"/>",
+    ),
+  )
+  assert_true(
+    xml.contains(
+      "<velocity name=\"wheel_vel\" joint=\"wheel\" kv=\"2\" ctrlrange=\"-30 30\" forcerange=\"-5 5\"/>",
+    ),
+  )
+  assert_true(!xml.contains("<motor"))
+}
+
+///|
+test "mjcf emits rolling cylinder geoms for tires" {
+  let base = @urdf.Link::new("base")
+    .with_inertial(@urdf.Inertial::from_box(0.1, 0.1, 0.1, mass=1.0))
+    .add_collision(@urdf.Collision::new(@urdf.Geometry::box(0.1, 0.1, 0.1)))
+  let tire = @urdf.Link::new("lf_tire")
+    .with_inertial(@urdf.Inertial::from_box(0.1, 0.1, 0.1, mass=0.2))
+    .add_collision(
+      @urdf.Collision::new(@urdf.Geometry::cylinder(0.0889, 0.0381)),
+    )
+  let robot = @urdf.Robot::new("tire-bot")
+    .add_link(base)
+    .add_link(tire)
+    .add_joint(
+      @urdf.Joint::new(
+        "axle",
+        @urdf.JointType::Continuous,
+        parent="base",
+        child="lf_tire",
+        axis=(0.0, 1.0, 0.0),
+      ),
+    )
+  let xml = robot.to_mjcf_string()
+  assert_true(
+    xml.contains(
+      "<geom name=\"lf_tire_geom_0\" type=\"cylinder\" size=\"0.0889 0.01905\"",
+    ),
+  )
+  assert_true(xml.contains("contype=\"2\""))
+  assert_true(xml.contains("friction=\"1.2 0.01 0.001\""))
 }

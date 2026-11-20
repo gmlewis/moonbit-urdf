@@ -12,11 +12,22 @@ pub(all) struct UrdfBundle {
   package_name : String
   robot : Robot
   meshes : Array[MeshAsset]
+  /// Simulation options for `mjcf/<robot>.xml`; `None` uses legacy defaults.
+  mjcf_options : MjcfOptions?
 }
 
 ///|
 pub fn UrdfBundle::new(package_name : String, robot : Robot) -> UrdfBundle {
-  { package_name, robot, meshes: [], }
+  { package_name, robot, meshes: [], mjcf_options: None, }
+}
+
+///|
+/// Sets the MJCF simulation options written alongside the URDF.
+pub fn UrdfBundle::with_mjcf_options(
+  self : UrdfBundle,
+  options : MjcfOptions,
+) -> UrdfBundle {
+  { ..self, mjcf_options: Some(options), }
 }
 
 ///|
@@ -99,10 +110,11 @@ pub async fn UrdfBundle::write_to_dir(
   let mjcf_dir = out_dir + "/mjcf"
   @fs.mkdir(mjcf_dir, recursive=true, allow_exist=true)
   let mjcf_path = mjcf_dir + "/" + self.robot.name + ".xml"
-  write_text_file(
-    self.robot.to_mjcf_string(mesh_dir="../meshes"),
-    Some(mjcf_path),
-  )
+  let mjcf = match self.mjcf_options {
+    Some(options) => self.robot.to_mjcf_with_options(options)
+    None => self.robot.to_mjcf_string(mesh_dir="../meshes")
+  }
+  write_text_file(mjcf, Some(mjcf_path))
   let package_path = out_dir + "/package.xml"
   write_text_file(self.package_xml(), Some(package_path))
   for mesh in self.meshes {
