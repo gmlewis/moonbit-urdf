@@ -370,6 +370,18 @@ fn mjcf_contact_attrs(link_name : String, part_name : String) -> String {
     part.contains("act_a12") ||
     part.contains("planet") ||
     part.contains("herringbone") ||
+    part.contains("cycloid") ||
+    part.contains("eccentric") ||
+    part.contains("flexspline") ||
+    part.contains("wave_gen") ||
+    part.contains("harmonic") ||
+    part.contains("wolfrom") ||
+    part.contains("stepped") ||
+    part.contains("capstan") ||
+    part.contains("worm") ||
+    part.contains("bevel") ||
+    part.contains("differential") ||
+    part.contains("spider") ||
     part.contains("ring") ||
     part.contains("sun") ||
     part.contains("gear") ||

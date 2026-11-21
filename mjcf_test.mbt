@@ -254,3 +254,28 @@ test "mjcf emits rolling cylinder geoms for tires" {
   assert_true(xml.contains("contype=\"2\""))
   assert_true(xml.contains("friction=\"1.2 0.01 0.001\""))
 }
+
+///|
+test "mjcf disables contact on internal cycloidal and harmonic stage parts" {
+  let base = @urdf.Link::new("casing")
+    .with_inertial(@urdf.Inertial::from_box(0.1, 0.1, 0.1, mass=1.0))
+    .add_collision(
+      @urdf.Collision::new(@urdf.Geometry::cylinder(0.04, 0.01)).with_name(
+        "stage1_cycloid_disk_1",
+      ),
+    )
+    .add_collision(
+      @urdf.Collision::new(@urdf.Geometry::cylinder(0.03, 0.01)).with_name(
+        "stage2_flexspline_cup",
+      ),
+    )
+    .add_collision(
+      @urdf.Collision::new(@urdf.Geometry::cylinder(0.025, 0.01)).with_name(
+        "stage2_wave_gen",
+      ),
+    )
+  let robot = @urdf.Robot::new("multi-stage-bot").add_link(base)
+  let xml = robot.to_mjcf_string()
+  assert_true(xml.contains("contype=\"0\" conaffinity=\"0\""))
+  assert_true(!xml.contains("contype=\"4\""))
+}

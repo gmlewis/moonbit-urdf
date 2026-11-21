@@ -355,3 +355,35 @@ test "link world origins returns origins" {
   let origins = robot.link_world_origins()
   assert_true(mate_near(origins.get("arm").unwrap().xyz.2, 0.1))
 }
+
+///|
+test "forward kinematics resolves chained signed multi-stage gearbox mimics" {
+  // Stage 1: planetary (+1/4), Stage 2: cycloidal (-1/11), Stage 3: harmonic (-1/30).
+  // Net ratio = (1/4) * (-1/11) * (-1/30) = +1/1320.
+  let robot = empty_robot()
+    .add_links([
+      @urdf.Link::new("casing"),
+      @urdf.Link::new("motor"),
+      @urdf.Link::new("stage1_out"),
+      @urdf.Link::new("stage2_out"),
+      @urdf.Link::new("stage3_out"),
+    ])
+    .add_joints([
+      @urdf.Joint::continuous("motor_j", parent="casing", child="motor"),
+      @urdf.Joint::continuous("stage1_j", parent="casing", child="stage1_out").with_mimic(
+        @urdf.JointMimic::new("motor_j", multiplier=0.25),
+      ),
+      @urdf.Joint::continuous("stage2_j", parent="casing", child="stage2_out").with_mimic(
+        @urdf.JointMimic::new("stage1_j", multiplier=-1.0 / 11.0),
+      ),
+      @urdf.Joint::continuous("stage3_j", parent="casing", child="stage3_out").with_mimic(
+        @urdf.JointMimic::new("stage2_j", multiplier=-1.0 / 30.0),
+      ),
+    ])
+  let q = Map([])
+  // Drive motor 1320 * (pi/2) rad so stage3 rotates +pi/2 rad (+90 deg).
+  q.set("motor_j", 1320.0 * @math.PI / 2.0)
+  let poses = robot.forward_kinematics(joint_positions=q)
+  let out3 = poses.get("stage3_out").unwrap()
+  assert_true(mate_near_vec(out3.apply_dir((1.0, 0.0, 0.0)), (0.0, 1.0, 0.0)))
+}
