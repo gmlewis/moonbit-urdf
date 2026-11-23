@@ -1,6 +1,6 @@
 name = "gmlewis/urdf"
 
-version = "0.2.14"
+version = "0.2.15"
 
 import {
   "gmlewis/step@0.2.14",
