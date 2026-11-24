@@ -1,9 +1,9 @@
 name = "gmlewis/urdf"
 
-version = "0.2.15"
+version = "0.2.16"
 
 import {
-  "gmlewis/step@0.2.15",
+  "gmlewis/step@0.2.16",
   "moonbitlang/async@0.22.10",
 }
 
