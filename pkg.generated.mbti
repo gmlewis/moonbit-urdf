@@ -227,6 +227,7 @@ pub fn Joint::fixed(String, parent~ : String, child~ : String, origin? : Origin)
 pub fn Joint::floating(String, parent~ : String, child~ : String, origin? : Origin) -> Self
 pub fn Joint::from_mates(String, JointType, parent_link~ : String, parent_mate~ : @common.MateConnector, child_link~ : String, child_mate~ : @common.MateConnector, offset? : Double, angle_rad? : Double, flip_axis? : Bool, limit? : JointLimit?, dynamics? : JointDynamics?) -> Self
 pub fn Joint::from_pair(String, JointType, parent_link~ : String, parent_mate~ : @common.MateConnector, child_link~ : String, child_mate~ : @common.MateConnector, pair~ : @common.MatePair, limit? : JointLimit?, dynamics? : JointDynamics?) -> Self
+pub fn Joint::mimic_joint(Self, String, multiplier? : Double, offset? : Double) -> Self
 pub fn Joint::new(String, JointType, parent~ : String, child~ : String, origin? : Origin, axis? : (Double, Double, Double)) -> Self
 pub fn Joint::not_equal(Self, Self) -> Bool
 pub fn Joint::planar(String, parent~ : String, child~ : String, origin? : Origin, axis? : (Double, Double, Double)) -> Self
@@ -236,6 +237,7 @@ pub fn Joint::to_repr(Self) -> @debug.Repr
 pub fn Joint::with_axis(Self, (Double, Double, Double)) -> Self
 pub fn Joint::with_calibration(Self, JointCalibration) -> Self
 pub fn Joint::with_dynamics(Self, JointDynamics) -> Self
+pub fn Joint::with_gear_reduction(Self, String, Double, offset? : Double) -> Self
 pub fn Joint::with_limit(Self, JointLimit) -> Self
 pub fn Joint::with_mimic(Self, JointMimic) -> Self
 pub fn Joint::with_origin(Self, Origin) -> Self
@@ -331,6 +333,8 @@ pub fn Link::new(String) -> Self
 pub fn Link::not_equal(Self, Self) -> Bool
 pub fn Link::rebase_to_mate(Self, @common.MateConnector) -> Self
 pub fn Link::to_repr(Self) -> @debug.Repr
+pub fn Link::with_body(Self, Geometry, name? : String?, origin? : Origin, material? : Material?) -> Self
+pub fn Link::with_colored_body(Self, Geometry, String, Rgba, name? : String?, origin? : Origin) -> Self
 pub fn Link::with_inertial(Self, Inertial) -> Self
 
 #derive(Eq, @debug.Debug)
@@ -489,6 +493,11 @@ pub fn Robot::add_links(Self, Array[Link]) -> Self
 pub fn Robot::add_loop_constraint(Self, LoopConstraint) -> Self
 pub fn Robot::add_material(Self, Material) -> Self
 pub fn Robot::add_transmission(Self, Transmission) -> Self
+pub fn Robot::attach_child(Self, parent~ : String, joint_name~ : String, Link, joint_type? : JointType, origin? : Origin, axis? : (Double, Double, Double), limit? : JointLimit, dynamics? : JointDynamics, mimic? : JointMimic) -> Self
+pub fn Robot::attach_continuous(Self, parent~ : String, joint_name~ : String, Link, origin? : Origin, axis? : (Double, Double, Double), limit? : JointLimit, dynamics? : JointDynamics, mimic? : JointMimic, reduction? : Double) -> Self
+pub fn Robot::attach_fixed(Self, parent~ : String, joint_name~ : String, Link, origin? : Origin) -> Self
+pub fn Robot::attach_prismatic(Self, parent~ : String, joint_name~ : String, Link, limit~ : JointLimit, origin? : Origin, axis? : (Double, Double, Double), dynamics? : JointDynamics, mimic? : JointMimic, reduction? : Double) -> Self
+pub fn Robot::attach_revolute(Self, parent~ : String, joint_name~ : String, Link, limit~ : JointLimit, origin? : Origin, axis? : (Double, Double, Double), dynamics? : JointDynamics, mimic? : JointMimic, reduction? : Double) -> Self
 pub fn Robot::diagnostics(Self) -> Array[Diagnostic]
 pub fn Robot::equal(Self, Self) -> Bool
 pub fn Robot::forward_kinematics(Self, joint_positions? : Map[String, Double]) -> Map[String, Transform]

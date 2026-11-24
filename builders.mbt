@@ -380,3 +380,233 @@ pub fn Robot::get_joint(self : Robot, name : String) -> Joint? {
   }
   None
 }
+
+///|
+/// Adds both a `Visual` and a matching `Collision` sharing `geometry` and
+/// `origin` to this link in a single fluent call.
+pub fn Link::with_body(
+  self : Link,
+  geometry : Geometry,
+  name~ : String? = None,
+  origin~ : Origin = Origin::identity(),
+  material~ : Material? = None,
+) -> Link {
+  self
+  .add_visual(Visual::new(geometry, name~, origin~, material~))
+  .add_collision(Collision::new(geometry, name~, origin~))
+}
+
+///|
+/// Convenience shorthand for `Link::with_body` with an inline color material.
+pub fn Link::with_colored_body(
+  self : Link,
+  geometry : Geometry,
+  color_name : String,
+  color : Rgba,
+  name~ : String? = None,
+  origin~ : Origin = Origin::identity(),
+) -> Link {
+  self.with_body(
+    geometry,
+    name~,
+    origin~,
+    material=Some(Material::color_only(color_name, color)),
+  )
+}
+
+///|
+/// Couples this joint to `driver_joint` with `<mimic>` multiplier and offset:
+/// `q_this = multiplier * q_driver + offset`.
+pub fn Joint::mimic_joint(
+  self : Joint,
+  driver_joint : String,
+  multiplier~ : Double = 1.0,
+  offset~ : Double = 0.0,
+) -> Joint {
+  self.with_mimic({ joint: driver_joint, multiplier, offset, })
+}
+
+///|
+/// Couples this joint to `driver_joint` through a mechanical gear reduction
+/// `reduction` (e.g. `5.0` for a 5:1 planetary stage so output turns at `1/5`
+/// the speed of `driver_joint`; negative values reverse direction).
+pub fn Joint::with_gear_reduction(
+  self : Joint,
+  driver_joint : String,
+  reduction : Double,
+  offset~ : Double = 0.0,
+) -> Joint {
+  let mult = if reduction == 0.0 { 1.0 } else { 1.0 / reduction }
+  self.with_mimic({ joint: driver_joint, multiplier: mult, offset, })
+}
+
+///|
+/// Adds `child` link AND attaches it to `parent` via a new `Joint` in one
+/// fluent call — keeping serial kinematic trees concise and impossible to
+/// leave disconnected.
+pub fn Robot::attach_child(
+  self : Robot,
+  parent~ : String,
+  joint_name~ : String,
+  child : Link,
+  joint_type~ : JointType = Fixed,
+  origin~ : Origin = Origin::identity(),
+  axis~ : Vec3 = (0.0, 0.0, 1.0),
+  limit? : JointLimit,
+  dynamics? : JointDynamics,
+  mimic? : JointMimic,
+) -> Robot {
+  let mut joint = Joint::new(
+    joint_name,
+    joint_type,
+    parent~,
+    child=child.name,
+    origin~,
+    axis~,
+  )
+  match limit {
+    Some(l) => joint = joint.with_limit(l)
+    None => ()
+  }
+  match dynamics {
+    Some(d) => joint = joint.with_dynamics(d)
+    None => ()
+  }
+  match mimic {
+    Some(m) => joint = joint.with_mimic(m)
+    None => ()
+  }
+  self.add_link(child).add_joint(joint)
+}
+
+///|
+/// Adds `child` link and attaches it to `parent` with a `Fixed` joint.
+pub fn Robot::attach_fixed(
+  self : Robot,
+  parent~ : String,
+  joint_name~ : String,
+  child : Link,
+  origin~ : Origin = Origin::identity(),
+) -> Robot {
+  self.attach_child(parent~, joint_name~, child, joint_type=Fixed, origin~)
+}
+
+///|
+/// Adds `child` link and attaches it to `parent` with a `Revolute` joint
+/// (and optional `Transmission::simple` when `reduction` is provided).
+pub fn Robot::attach_revolute(
+  self : Robot,
+  parent~ : String,
+  joint_name~ : String,
+  child : Link,
+  limit~ : JointLimit,
+  origin~ : Origin = Origin::identity(),
+  axis~ : Vec3 = (0.0, 0.0, 1.0),
+  dynamics? : JointDynamics,
+  mimic? : JointMimic,
+  reduction? : Double,
+) -> Robot {
+  let out = self.attach_child(
+    parent~,
+    joint_name~,
+    child,
+    joint_type=Revolute,
+    origin~,
+    axis~,
+    limit~,
+    dynamics?,
+    mimic?,
+  )
+  match reduction {
+    Some(red) =>
+      out.add_transmission(
+        Transmission::simple(
+          "\{joint_name}_trans",
+          joint_name,
+          "\{joint_name}_motor",
+          reduction=red,
+        ),
+      )
+    None => out
+  }
+}
+
+///|
+/// Adds `child` link and attaches it to `parent` with a `Continuous` joint
+/// (and optional `Transmission::simple` when `reduction` is provided).
+pub fn Robot::attach_continuous(
+  self : Robot,
+  parent~ : String,
+  joint_name~ : String,
+  child : Link,
+  origin~ : Origin = Origin::identity(),
+  axis~ : Vec3 = (0.0, 0.0, 1.0),
+  limit? : JointLimit,
+  dynamics? : JointDynamics,
+  mimic? : JointMimic,
+  reduction? : Double,
+) -> Robot {
+  let out = self.attach_child(
+    parent~,
+    joint_name~,
+    child,
+    joint_type=Continuous,
+    origin~,
+    axis~,
+    limit?,
+    dynamics?,
+    mimic?,
+  )
+  match reduction {
+    Some(red) =>
+      out.add_transmission(
+        Transmission::simple(
+          "\{joint_name}_trans",
+          joint_name,
+          "\{joint_name}_motor",
+          reduction=red,
+        ),
+      )
+    None => out
+  }
+}
+
+///|
+/// Adds `child` link and attaches it to `parent` with a `Prismatic` joint
+/// (and optional `Transmission::simple` when `reduction` is provided).
+pub fn Robot::attach_prismatic(
+  self : Robot,
+  parent~ : String,
+  joint_name~ : String,
+  child : Link,
+  limit~ : JointLimit,
+  origin~ : Origin = Origin::identity(),
+  axis~ : Vec3 = (0.0, 0.0, 1.0),
+  dynamics? : JointDynamics,
+  mimic? : JointMimic,
+  reduction? : Double,
+) -> Robot {
+  let out = self.attach_child(
+    parent~,
+    joint_name~,
+    child,
+    joint_type=Prismatic,
+    origin~,
+    axis~,
+    limit~,
+    dynamics?,
+    mimic?,
+  )
+  match reduction {
+    Some(red) =>
+      out.add_transmission(
+        Transmission::simple(
+          "\{joint_name}_trans",
+          joint_name,
+          "\{joint_name}_motor",
+          reduction=red,
+        ),
+      )
+    None => out
+  }
+}
