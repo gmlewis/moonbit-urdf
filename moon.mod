@@ -4,7 +4,7 @@ version = "0.2.20"
 
 import {
   "gmlewis/step@0.2.20",
-  "moonbitlang/async@0.22.10",
+  "moonbitlang/async@0.22.11",
 }
 
 readme = "README.md"
